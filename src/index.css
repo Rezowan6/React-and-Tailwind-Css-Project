@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ *{
+    font-family: 'Times New Roman', Times, serif;
+}
+body{
+    background-color: darkblue;
+}
+
