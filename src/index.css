@@ -4,7 +4,11 @@
  *{
     font-family: 'Times New Roman', Times, serif;
 }
+html {
+    scroll-behavior: smooth;
+}
+
 body{
-    background-color: darkblue;
+    background-color: darkslateblue;
 }
 

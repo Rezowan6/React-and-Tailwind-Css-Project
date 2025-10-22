@@ -1,151 +1,115 @@
+/* eslint-disable no-unused-vars */
+
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import { FaBars, FaTimes } from "react-icons/fa";
+import { FaBars, FaTimes, FaMoon, FaSun } from "react-icons/fa";
+import { motion, AnimatePresence } from "framer-motion";
 
-export default function Navbar({ filter, setFilter }) {
+export default function Navbar({ filter, setFilter, darkMode, setDarkMode }) {
   const [open, setOpen] = useState(false);
 
-  const linkClass =
-    "block py-2 px-4 text-white hover:text-teal-400 transition duration-200";
-  const activeClass = "text-teal-400 font-semibold";
+  const linkClass = "block py-2 px-4 rounded-lg hover:bg-primary/20 transition duration-200";
+  const activeClass = "text-primary font-semibold";
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-md shadow-md p-4 rounded-xl mb-8 max-w-6xl mx-auto bg-white/10">
-      <div className="flex items-center justify-between w-full">
-        {/* 🧭 Logo - hidden on mobile */}
-        <h1 className="text-2xl font-bold text-white hidden md:block">
-          Mill Management System
-        </h1>
+    <>
+      {/* Full page fade overlay */}
+      <AnimatePresence>
+        <motion.div
+          key={darkMode ? "dark" : "light"}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="fixed inset-0 pointer-events-none bg-light dark:bg-secondary transition-opacity duration-500"
+        />
+      </AnimatePresence>
 
-        {/* 🔍 Search Input - hidden on desktop, visible on mobile */}
-        <div className="block md:hidden flex-1 mr-3">
-          <input
-            type="text"
-            placeholder="Search..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="w-full px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-400 text-black"
-          />
+      {/* Navbar */}
+      <nav className="sticky top-0 z-50 backdrop-blur-lg shadow-md p-4 rounded-xl mb-8 max-w-6xl mx-auto 
+                      bg-white/30 dark:bg-secondary/70 transition-all duration-300">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <h1 className="text-2xl font-bold text-secondary dark:text-white tracking-wide">
+            Mill Management
+          </h1>
+
+          {/* Search (Desktop) */}
+          <div className="hidden md:block">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 
+                        bg-transparent text-secondary dark:text-white
+                        focus:outline-none focus:ring-2 focus:ring-primary w-64"
+            />
+          </div>
+
+          {/* Theme Toggle */}
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="ml-3 p-2 rounded-full hover:bg-primary/20 transition text-secondary dark:text-white"
+          >
+            {darkMode ? <FaSun size={22} /> : <FaMoon size={22} />}
+          </button>
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setOpen(!open)}
+            className="text-secondary dark:text-white md:hidden focus:outline-none ml-2"
+          >
+            {open ? <FaTimes size={26} /> : <FaBars size={26} />}
+          </button>
         </div>
 
-        {/* 🔍 Search Input (Desktop only) */}
-        <div className="hidden md:block">
-          <input
-            type="text"
-            placeholder="Search..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-400 text-black w-60"
-          />
-        </div>
+        {/* Desktop menu */}
+        <ul className="hidden md:flex justify-center gap-10 font-medium text-lg mt-4">
+          {["Home", "Updates", "Expenses", "Dashboard"].map((name) => (
+            <li key={name}>
+              <NavLink
+                to={name === "Home" ? "/" : `/${name.toLowerCase()}`}
+                className={({ isActive }) =>
+                  `${linkClass} ${
+                    isActive ? activeClass : "text-secondary dark:text-white"
+                  }`
+                }
+              >
+                {name}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
 
-        {/* 📱 Mobile Menu Button */}
-        <button
-          onClick={() => setOpen(!open)}
-          className="text-white md:hidden focus:outline-none ml-2"
-        >
-          {open ? <FaTimes size={26} /> : <FaBars size={26} />}
-        </button>
-      </div>
-
-      {/* 🧭 Desktop Menu */}
-      <ul className="hidden md:flex justify-center gap-10 font-medium text-white text-lg mt-4">
-        <li>
-          <NavLink
-            to="/"
-            className={({ isActive }) =>
-              `${linkClass} ${isActive ? activeClass : ""}`
-            }
-          >
-            Home
-          </NavLink>
-        </li>
-        <li>
-          <NavLink
-            to="/updates"
-            className={({ isActive }) =>
-              `${linkClass} ${isActive ? activeClass : ""}`
-            }
-          >
-            Updates
-          </NavLink>
-        </li>
-        <li>
-          <NavLink
-            to="/expenses"
-            className={({ isActive }) =>
-              `${linkClass} ${isActive ? activeClass : ""}`
-            }
-          >
-            Expenses
-          </NavLink>
-        </li>
-        <li>
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) =>
-              `${linkClass} ${isActive ? activeClass : ""}`
-            }
-          >
-            Dashboard
-          </NavLink>
-        </li>
-      </ul>
-
-      {/* 📱 Mobile Dropdown Menu */}
-      {open && (
-        <div className="mt-4 md:hidden flex flex-col items-center space-y-4 text-white text-lg">
-          <ul className="flex flex-col items-center gap-4">
-            <li>
+        {/* Mobile Menu */}
+        {open && (
+          <div className="mt-4 md:hidden flex flex-col items-center space-y-4 text-secondary dark:text-white text-lg">
+            {["Home", "Updates", "Expenses", "Dashboard"].map((name) => (
               <NavLink
-                to="/"
+                key={name}
+                to={name === "Home" ? "/" : `/${name.toLowerCase()}`}
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
-                  `${linkClass} ${isActive ? activeClass : ""}`
+                  `${linkClass} ${
+                    isActive ? activeClass : "text-secondary dark:text-white"
+                  }`
                 }
               >
-                Home
+                {name}
               </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/updates"
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `${linkClass} ${isActive ? activeClass : ""}`
-                }
-              >
-                Updates
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/expenses"
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `${linkClass} ${isActive ? activeClass : ""}`
-                }
-              >
-                Expenses
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/dashboard"
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `${linkClass} ${isActive ? activeClass : ""}`
-                }
-              >
-                Dashboard
-              </NavLink>
-            </li>
-          </ul>
-        </div>
-      )}
-    </nav>
+            ))}
+          </div>
+        )}
+      </nav>
+    </>
   );
 }
+
+
+
+
+
 
 
 
