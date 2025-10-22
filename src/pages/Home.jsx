@@ -51,7 +51,7 @@ export default function Home({ filter, darkMode }) {
       editCount: 0,
       editHistory: [],
     };
-
+    // duplicate name
     const isDuplicate = students.some(
       (s) => s.name.toLowerCase() === name.toLowerCase() && editIndex === null
     );
