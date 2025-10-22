@@ -145,9 +145,19 @@ export default function Home({ filter, darkMode }) {
         <h2 className="text-2xl lg:text-3xl font-bold text-center">{`Students Mill Management`}</h2>
 
         {/* Add Student Form */}
-        <div className={`backdrop-blur-sm p-6 rounded-2xl space-y-5 transition-colors duration-500 ${cardBg}`}>
-          <h3 className={`text-xl font-semibold`}>📅 Add First Data</h3>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <div className={`backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-lg space-y-6 transition-colors duration-500 ${cardBg}`}>
+          <h3
+            className={`text-2xl font-semibold flex items-center gap-2 ${
+              darkMode ? "text-white" : "text-gray-800"
+            }`}
+          >
+            📅 Add First Data
+          </h3>
+
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-6 w-full max-w-3xl mx-auto"
+          >
             {/* Name Input */}
             <div className="flex flex-col gap-2">
               <label className="font-medium">Name:</label>
@@ -159,23 +169,23 @@ export default function Home({ filter, darkMode }) {
                   setName(e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1))
                 }
                 required
-                className={`w-full lg:w-1/4 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
+                className={`w-full md:w-2/3 lg:w-1/2 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
               />
             </div>
 
             {/* Money Options */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               <label className="font-medium">Select Money:</label>
-              <div className="flex flex-wrap gap-4">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4">
                 {[500, 1000, 1500, 2000, 2500, 3000].map((val) => (
                   <label
                     key={val}
-                    className={`flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer transition-colors duration-300 ${
+                    className={`flex items-center justify-center gap-2 border rounded-lg px-3 py-2 cursor-pointer font-medium transition-all duration-300 shadow-sm hover:shadow-md ${
                       selectedAmount === val
-                        ? "bg-teal-600 text-white border-teal-600"
+                        ? "bg-teal-600 text-white border-teal-600 scale-[1.03]"
                         : darkMode
-                        ? "border-gray-600 text-white"
-                        : "border-gray-300 text-black"
+                        ? "border-gray-600 text-white hover:bg-gray-700"
+                        : "border-gray-300 text-gray-800 hover:bg-gray-100"
                     }`}
                   >
                     <input
@@ -190,9 +200,9 @@ export default function Home({ filter, darkMode }) {
               </div>
             </div>
 
-            {/* Custom Input */}
-            <div className="flex flex-col md:flex-row md:items-end gap-4">
-              <div className="flex flex-col gap-2">
+            {/* Custom Input + Button */}
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              <div className="flex flex-col gap-2 flex-1">
                 <label className="font-medium">Custom Input:</label>
                 <input
                   type="number"
@@ -200,12 +210,13 @@ export default function Home({ filter, darkMode }) {
                   onChange={(e) => setStudentTk(e.target.value)}
                   placeholder="Enter Total Tk"
                   required
-                  className={`px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
+                  className={`px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
                 />
               </div>
+
               <button
                 type="submit"
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md transition"
+                className="bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 text-white font-medium px-6 py-2.5 rounded-lg shadow-md transition-transform duration-300 hover:scale-105"
               >
                 {editIndex === null ? "Add Student" : "Update Student"}
               </button>
@@ -213,8 +224,9 @@ export default function Home({ filter, darkMode }) {
           </form>
         </div>
 
+
         {/* Cards */}
-        <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
+        <div className="flex flex-col md:flex-row gap-6 justify-center items-center cursor-pointer">
           <ReusableCard title="Total Money" amount={totalMoney} color="red" darkMode={darkMode} />
           <ReusableCard title="Remaining Money" amount={remainingMoney} color="green" darkMode={darkMode} />
         </div>
