@@ -11,4 +11,18 @@ html {
 body{
     background-color: darkslateblue;
 }
-
+.closeBtn{
+    @apply mt-5 w-full py-2 rounded-md font-medium text-white bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 hover:opacity-90 shadow-[0_0_15px_rgba(244,114,182,0.4)] transition;
+}
+.yesBtn{
+    @apply bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 text-white px-4 py-2 rounded-md w-1/2 font-medium hover:opacity-90 transition;
+}
+.noBtn{
+    @apply bg-gradient-to-r from-red-400 via-pink-500 to-purple-500 text-white px-4 py-2 rounded-md w-1/2 font-medium hover:opacity-90 transition;
+}
+.okBtn{
+    @apply bg-gradient-to-r from-teal-400 via-purple-500 to-pink-500 text-white px-4 py-2 rounded-md w-full font-medium hover:opacity-90 transition;
+}
+.addUpdateBtn{
+    @apply bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 text-white font-medium px-6 py-2.5 rounded-lg shadow-md transition-transform duration-300 hover:scale-105;
+}

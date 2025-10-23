@@ -45,7 +45,7 @@ export default function Button({ type, onClick, label }) {
     ) : (
         <button
         onClick={onClick}
-        className={`${bgColor} ${hoverColor} ${textColor} px-6 py-2 rounded-md shadow-md transition hover:scale-105`}
+        className={`${bgColor} ${hoverColor} ${textColor} px-6 py-2 rounded-md shadow-md cur transition hover:scale-105`}
         >
         {label ||
             (type === "delete"

@@ -200,11 +200,13 @@ export default function Updates({ filter, darkMode }) {
   const filteredRows = extraRows.filter((row) =>
     row.name.toLowerCase().includes(filter.toLowerCase())
   );
+  // total meal count---
+  const totalMeals = filteredRows.reduce((sum, row) => sum + (Number(row.mill) || 0), 0);
 
   return (
     <div className={`min-h-screen p-5 font-[Times_New_Roman] transition-colors duration-500 ${bgClass}`}>
       <div className="max-w-6xl mx-auto space-y-8">
-        <h2 className="text-2xl lg:text-3xl font-bold text-center">Every Day Mill Updates</h2>
+        <h2 className="text-2xl lg:text-3xl font-bold text-center">Every Day Meal Updates</h2>
 
         {/* Form */}
         <div className={`backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-lg space-y-6 transition-colors duration-500 ${cardBg}`}>
@@ -256,7 +258,7 @@ export default function Updates({ filter, darkMode }) {
                 />
               </div>
 
-              <button type="submit" className="bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 text-white font-medium px-6 py-2.5 rounded-lg shadow-md transition-transform duration-300 hover:scale-105">
+              <button type="submit" className="addUpdateBtn">
                 {editIndex !== null ? "Update Mill" : "Add Mill"}
               </button>
             </div>
@@ -265,13 +267,21 @@ export default function Updates({ filter, darkMode }) {
 
         {/* Table */}
         <div className={`backdrop-blur-sm p-5 rounded-md transition-colors duration-500 ${cardBg}`}>
-          <h2 className="text-xl font-semibold mb-4">📊 Every Day Mill Data</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">📊 Every Day Meal Data</h2>
+
+            {/* ✅ total meal */}
+            <p className={`text-xl font-medium ${darkMode ? "text-white" : "text-white"}`}>
+              Total Meal: {totalMeals}
+            </p>
+          </div>
+
           <table className={`w-full border-collapse text-center border transition-colors duration-500 ${darkMode ? "border-gray-600 text-white" : "border-gray-300 text-black"}`}>
             <thead className={darkMode ? "bg-gray-700/30" : "bg-white/20"}>
               <tr>
                 <th className="border py-2">ID</th>
                 <th className="border py-2">Name</th>
-                <th className="border py-2">Total Mill</th>
+                <th className="border py-2">Total Meal</th>
                 <th className="border py-2">Action</th>
               </tr>
             </thead>
@@ -339,7 +349,7 @@ export default function Updates({ filter, darkMode }) {
                 </div>
               ) : <p className="text-center text-gray-400">No monthly data found</p>}
 
-              <button onClick={closeMonthlyView} className="mt-5 w-full py-2 rounded-md font-medium text-white bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 hover:opacity-90 shadow-[0_0_15px_rgba(244,114,182,0.4)] transition">
+              <button onClick={closeMonthlyView} className="closeBtn">
                 Close
               </button>
             </div>
@@ -347,12 +357,12 @@ export default function Updates({ filter, darkMode }) {
         )}
 
         {/* Edit History Modal */}
-      <EditHistoryModal
-        show={!!viewHistory}
-        onClose={closeHistoryView}
-        student={viewHistory}
-      />
-
+        <EditHistoryModal
+          show={!!viewHistory}
+          onClose={closeHistoryView}
+          student={viewHistory}
+          headerLabel="Meal"
+        />
 
         {/* Alert Popup */}
         {alertData.show && <AlertPopup show={alertData.show} onClose={closeAlert} title={alertData.title} message={alertData.message} type={alertData.type} onConfirm={alertData.onConfirm} />}

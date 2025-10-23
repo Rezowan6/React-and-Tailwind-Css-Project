@@ -17,7 +17,7 @@ export default function AlertPopup({ show, onClose, title, message, type, onConf
           {type === "alert" && (
             <button
               onClick={onClose}
-              className="bg-gradient-to-r from-teal-400 via-purple-500 to-pink-500 text-white px-4 py-2 rounded-md w-full font-medium hover:opacity-90 transition"
+              className="okBtn"
             >
               OK
             </button>
@@ -30,13 +30,13 @@ export default function AlertPopup({ show, onClose, title, message, type, onConf
                   onConfirm && onConfirm();
                   onClose();
                 }}
-                className="bg-gradient-to-r from-green-400 via-blue-500 to-purple-500 text-white px-4 py-2 rounded-md w-1/2 font-medium hover:opacity-90 transition"
+                className="yesBtn"
               >
                 Yes
               </button>
               <button
                 onClick={onClose}
-                className="bg-gradient-to-r from-red-400 via-pink-500 to-purple-500 text-white px-4 py-2 rounded-md w-1/2 font-medium hover:opacity-90 transition"
+                className="noBtn"
               >
                 No
               </button>
