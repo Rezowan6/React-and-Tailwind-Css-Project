@@ -79,13 +79,18 @@ export default function Home({ filter, darkMode }) {
       const newHistory = [...student.editHistory];
       if (!newHistory.includes(todayKey)) newHistory.push(todayKey);
 
+      const prevTk = student.studentTk; // আগের value
       updated[editIndex] = {
         ...student,
-        studentTk: Number(studentTk),
+        studentTk: Number(studentTk), // নতুন value
         date: formattedDate,
-        editCount: newHistory.length,
-        editHistory: newHistory,
+        editCount: student.editCount + 1,
+        editHistory: [
+          ...(student.editHistory || []),
+          { prevTk, newTk: Number(studentTk), date: formattedDate }
+        ]
       };
+
       setStudents(updated);
       setEditIndex(null);
       showAlert("✅ Updated", "Student updated successfully!");
@@ -213,7 +218,7 @@ export default function Home({ filter, darkMode }) {
                   className={`px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
                 />
               </div>
-
+              {/* add student button */}
               <button
                 type="submit"
                 className="bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 text-white font-medium px-6 py-2.5 rounded-lg shadow-md transition-transform duration-300 hover:scale-105"
@@ -278,7 +283,7 @@ export default function Home({ filter, darkMode }) {
                         setEditIndex(i);
                         setSelectedAmount(student.studentTk);
                       }}
-                      className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1 rounded-md text-sm transition"
+                      class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 py-1 rounded-md text-sm transition"
                     >
                       Edit
                     </button>
@@ -304,57 +309,52 @@ export default function Home({ filter, darkMode }) {
         </div>
 
       {/* Edit History Modal */}
-      {showHistoryIndex !== null && (
-        <div className="fixed inset-0 bg-black/90 flex justify-center items-center z-50">
-          <div
-            className={`relative p-6 rounded-2xl w-80 md:w-96 backdrop-blur-md bg-[#1E1E2F]/90 border border-teal-400 shadow-[0_0_25px_rgba(20,184,166,0.4)] transition-all duration-500 ${cardBg}`}
-          >
-            {/* Title */}
-            <h3 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-purple-500 to-pink-500 text-center">
-              ✎ Edit History of {students[showHistoryIndex].name}
-            </h3>
+{showHistoryIndex !== null && (
+  <div className="fixed inset-0 bg-black/90 flex justify-center items-center z-50">
+    <div className={`relative p-6 rounded-2xl w-80 md:w-96 backdrop-blur-md bg-[#1E1E2F]/90 border border-teal-400 shadow-[0_0_25px_rgba(20,184,166,0.4)] transition-all duration-500 ${cardBg}`}>
+      <h3 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-purple-500 to-pink-500 text-center">
+        ✎ Edit History of {students[showHistoryIndex].name}
+      </h3>
 
-            {/* Table */}
-            <div className="overflow-hidden rounded-lg border border-gray-600 shadow-inner">
-              <table className="w-full text-white text-sm">
-                <thead className="bg-gradient-to-r from-gray-700 via-gray-800 to-gray-700">
-                  <tr>
-                    <th className="px-2 py-2 border border-gray-600">#</th>
-                    <th className="px-2 py-2 border border-gray-600">Edited Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students[showHistoryIndex].editHistory.length > 0 ? (
-                    students[showHistoryIndex].editHistory.map((date, idx) => (
-                      <tr
-                        key={idx}
-                        className="cursor-pointer hover:bg-gradient-to-r hover:from-teal-500/30 hover:to-purple-500/30 transition-colors text-center"
-                      >
-                        <td className="border border-gray-700 py-2">{idx + 1}</td>
-                        <td className="border border-gray-700 py-2">{date}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="2" className="py-3 text-gray-400">
-                        No edits yet
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+      <div className="overflow-hidden rounded-lg border border-gray-600 shadow-inner">
+        <table className="w-full text-white text-sm">
+          <thead className="bg-gradient-to-r from-gray-700 via-gray-800 to-gray-700">
+            <tr>
+              <th className="px-2 py-2 border border-gray-600">#</th>
+              <th className="px-2 py-2 border border-gray-600">Date</th>
+              <th className="px-2 py-2 border border-gray-600">Tk</th>
+            </tr>
+          </thead>
+          <tbody>
+            {students[showHistoryIndex].editHistory.length > 0 ? (
+              students[showHistoryIndex].editHistory.map((h, idx) => (
+                <tr key={idx} className="cursor-pointer hover:bg-gradient-to-r hover:from-teal-500/30 hover:to-purple-500/30 transition-colors text-center">
+                  <td className="border border-gray-700 py-2">{idx + 1}</td>
+                  <td className="border border-gray-700 py-2">{h.date}</td>
+                  <td className="border border-gray-700 py-2">{h.prevTk} → {h.newTk}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="3" className="py-3 text-gray-400">
+                  No edits yet
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-            {/* Close Button */}
-            <button
-              onClick={() => setShowHistoryIndex(null)}
-              className="mt-5 w-full py-2 rounded-md font-medium text-white bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 hover:opacity-90 shadow-[0_0_15px_rgba(244,114,182,0.4)] transition"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      <button
+        onClick={() => setShowHistoryIndex(null)}
+        className="mt-5 w-full py-2 rounded-md font-medium text-white bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 hover:opacity-90 shadow-[0_0_15px_rgba(244,114,182,0.4)] transition"
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
+
 
 
         {/* Global Alert */}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import Button from "../components/Button.jsx";
-import ReusableCard from "../components/ReusableCard.jsx";
 import AlertPopup from "../components/AlertPopup.jsx";
+import EditHistoryModal from "../components/EditHistoryModal.jsx";
 import useAlert from "../hooks/useAlert.js";
 
 export default function Updates({ filter, darkMode }) {
@@ -12,6 +12,7 @@ export default function Updates({ filter, darkMode }) {
   const [extraRows, setExtraRows] = useState([]);
   const [editIndex, setEditIndex] = useState(null);
   const [viewStudent, setViewStudent] = useState(null);
+  const [viewHistory, setViewHistory] = useState(null);
 
   const { alertData, showAlert, showConfirm, closeAlert } = useAlert();
 
@@ -36,24 +37,39 @@ export default function Updates({ filter, darkMode }) {
     localStorage.setItem("millData", JSON.stringify(extraRows));
   }, [extraRows]);
 
-  // Add to monthly data
-  const addToMonthlyData = (name, millValue) => {
+  // Add or update monthly data
+  const addToMonthlyData = (name, millValue, edit = false) => {
     const today = new Date().toLocaleDateString("en-GB");
     const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
     if (!monthlyData[name]) monthlyData[name] = [];
 
     const todayEntry = monthlyData[name].find((entry) => entry.date === today);
-    if (todayEntry) {
-      showAlert("⚠️ Warning", `A mill entry for ${name} has already been added today! You can only edit it.`);
+
+    if (todayEntry && !edit) {
+      showAlert(
+        "⚠️ Warning",
+        `A mill entry for ${name} has already been added today! You can only edit it.`
+      );
       return false;
     }
 
-    monthlyData[name].push({ date: today, mill: millValue });
+    if (todayEntry && edit) {
+      todayEntry.mill = millValue;
+      todayEntry.edited = true;
+      todayEntry.editCount = todayEntry.editCount ? todayEntry.editCount + 1 : 1;
+    } else {
+      monthlyData[name].push({
+        date: today,
+        mill: millValue,
+        edited: false,
+        editCount: 0,
+      });
+    }
+
     localStorage.setItem("monthlyMillData", JSON.stringify(monthlyData));
     return true;
   };
 
-  // checkbox
   const handleCheckbox = (value) => {
     if (selectedAmount === value) {
       setSelectedAmount(null);
@@ -72,31 +88,39 @@ export default function Updates({ filter, darkMode }) {
     const millValue = Number(customInput);
 
     setExtraRows((prevRows) => {
+      // Edit mode
       if (editIndex !== null) {
         const updated = [...prevRows];
+        const row = updated[editIndex];
+        const today = new Date().toLocaleDateString("en-GB");
+
+        const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
+        if (!monthlyData[row.name]) monthlyData[row.name] = [];
+        const todayEntry = monthlyData[row.name].find((entry) => entry.date === today);
+
+        if (todayEntry && todayEntry.editCount >= 1) {
+          showAlert("⚠️ Warning", "You can only edit once per day!");
+          return prevRows;
+        }
+
+        const prevMill = row.mill; // আগের value
         updated[editIndex] = {
-          ...updated[editIndex],
+          ...row,
           mill: millValue,
           edited: true,
+          editHistory: row.editHistory
+            ? [...row.editHistory, { prevMill: prevMill, newMill: millValue, date: today }]
+            : [{ prevMill: prevMill, newMill: millValue, date: today }],
         };
-        setEditIndex(null);
 
-        // Update monthly
-        const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
-        const today = new Date().toLocaleDateString("en-GB");
-        if (!monthlyData[selectedName]) monthlyData[selectedName] = [];
-        const todayEntryIndex = monthlyData[selectedName].findIndex(
-          (entry) => entry.date === today
-        );
-        if (todayEntryIndex !== -1) {
-          monthlyData[selectedName][todayEntryIndex].mill = millValue;
-          monthlyData[selectedName][todayEntryIndex].edited = true;
-        }
-        localStorage.setItem("monthlyMillData", JSON.stringify(monthlyData));
-        showAlert("✅ Updated", `${selectedName} এর মিল এন্ট্রি আপডেট হয়েছে`);
+        addToMonthlyData(row.name, millValue, true);
+
+        setEditIndex(null);
+        showAlert("✅ Updated", `${row.name} এর মিল এন্ট্রি আপডেট হয়েছে`);
         return updated;
       }
 
+      // Add new
       const success = addToMonthlyData(selectedName, millValue);
       if (!success) return prevRows;
 
@@ -106,14 +130,13 @@ export default function Updates({ filter, darkMode }) {
         updatedRows[rowIndex] = {
           ...updatedRows[rowIndex],
           mill: updatedRows[rowIndex].mill + millValue,
+          editHistory: updatedRows[rowIndex].editHistory || [],
         };
         showAlert("✅ Added", `Mill entry for ${selectedName} has been added successfully!`);
-
         return updatedRows;
       } else {
         showAlert("✅ Added", `Mill entry for ${selectedName} has been added successfully!`);
-
-        return [...prevRows, { name: selectedName, mill: millValue }];
+        return [...prevRows, { name: selectedName, mill: millValue, edited: false, editHistory: [] }];
       }
     });
 
@@ -135,7 +158,12 @@ export default function Updates({ filter, darkMode }) {
     setViewStudent({ name, data: monthlyData[name] || [] });
   };
 
+  const handleViewHistory = (row) => {
+    setViewHistory(row);
+  };
+
   const closeMonthlyView = () => setViewStudent(null);
+  const closeHistoryView = () => setViewHistory(null);
 
   // Delete last
   const deleteLast = () => {
@@ -154,14 +182,18 @@ export default function Updates({ filter, darkMode }) {
   // Restart all
   const restartAll = () => {
     if (!extraRows.length) return showAlert("❌ Error", "No student data to restart!");
-    showConfirm("⚠️ Restart All", "Are you sure you want to delete all students and data?", () => {
-      setExtraRows([]);
-      setStudents([]);
-      localStorage.removeItem("studentsData");
-      localStorage.removeItem("millData");
-      localStorage.removeItem("monthlyMillData");
-      showAlert("✅ Cleared", "All student data cleared!");
-    });
+    showConfirm(
+      "⚠️ Restart All",
+      "Are you sure you want to delete all students and data?",
+      () => {
+        setExtraRows([]);
+        setStudents([]);
+        localStorage.removeItem("studentsData");
+        localStorage.removeItem("millData");
+        localStorage.removeItem("monthlyMillData");
+        showAlert("✅ Cleared", "All student data cleared!");
+      }
+    );
   };
 
   const filteredRows = extraRows.filter((row) =>
@@ -179,62 +211,58 @@ export default function Updates({ filter, darkMode }) {
             ⚙️ {editIndex !== null ? "Edit Mill Entry" : "Add Mill Entry"}
           </h3>
 
-          <div className="flex flex-col gap-4 md:flex-row md:items-end justify-center">
-            <select
-              value={selectedName}
-              onChange={(e) => setSelectedName(e.target.value)}
-              className={`px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
-            >
-              <option value="">Select Name</option>
-              {students.map((s, i) => (
-                <option key={i} value={s.name}>{s.name}</option>
-              ))}
-            </select>
-
-            <input
-              type="number"
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              placeholder="Enter Mill"
-              className={`px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
-            />
-
-            <button
-              onClick={handleAdd}
-              className={`${
-                editIndex !== null ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"
-              } text-white px-6 py-2 rounded-lg shadow-md transition-transform duration-300 hover:scale-105`}
-            >
-              {editIndex !== null ? "Update Mill" : "Add Mill"}
-            </button>
-          </div>
-
-          {/* Checkboxes */}
-          <div className="flex flex-wrap gap-3 justify-center mt-3">
-            {[1, 2, 3, 4, 5, 6].map((val) => (
-              <label
-                key={val}
-                className={`flex items-center justify-center gap-2 border rounded-lg px-3 py-2 cursor-pointer font-medium transition-all duration-300 ${
-                  selectedAmount === val
-                    ? "bg-teal-600 text-white border-teal-600 scale-[1.03]"
-                    : darkMode
-                    ? "border-gray-600 text-white hover:bg-gray-700"
-                    : "border-gray-300 text-gray-800 hover:bg-gray-100"
-                }`}
+          <form
+            onSubmit={(e) => { e.preventDefault(); handleAdd(); }}
+            className="flex flex-col gap-6 w-full max-w-3xl mx-auto"
+          >
+            <div className="flex flex-col gap-2">
+              <label className="font-medium">Select Student:</label>
+              <select
+                value={selectedName}
+                onChange={(e) => setSelectedName(e.target.value)}
+                required
+                className={`w-full md:w-2/3 lg:w-1/2 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent transition-all duration-300 ${inputBorder}`}
               >
+                <option value="">Select Name</option>
+                {students.map((s, i) => (
+                  <option key={i} value={s.name}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <label className="font-medium">Select Mill:</label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4">
+                {[1,2,3,4,5,6].map((val) => (
+                  <label key={val} className={`flex items-center justify-center gap-2 border rounded-lg px-3 py-2 cursor-pointer font-medium transition-all duration-300 shadow-sm hover:shadow-md ${selectedAmount === val ? "bg-teal-600 text-white border-teal-600 scale-[1.03]" : darkMode ? "border-gray-600 text-white hover:bg-gray-700" : "border-gray-300 text-gray-800 hover:bg-gray-100"}`}>
+                    <input type="checkbox" checked={selectedAmount === val} onChange={() => handleCheckbox(val)} className="accent-teal-500"/>
+                    {val}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="font-medium">Custom Input:</label>
                 <input
-                  type="checkbox"
-                  checked={selectedAmount === val}
-                  onChange={() => handleCheckbox(val)}
-                  className="accent-teal-500"
+                  type="number"
+                  value={customInput}
+                  onChange={(e) => setCustomInput(e.target.value)}
+                  placeholder="Enter Mill"
+                  required
+                  className={`px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
                 />
-                {val}
-              </label>
-            ))}
-          </div>
+              </div>
+
+              <button type="submit" className="bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 text-white font-medium px-6 py-2.5 rounded-lg shadow-md transition-transform duration-300 hover:scale-105">
+                {editIndex !== null ? "Update Mill" : "Add Mill"}
+              </button>
+            </div>
+          </form>
         </div>
 
-        {/* Table + Buttons */}
+        {/* Table */}
         <div className={`backdrop-blur-sm p-5 rounded-md transition-colors duration-500 ${cardBg}`}>
           <h2 className="text-xl font-semibold mb-4">📊 Every Day Mill Data</h2>
           <table className={`w-full border-collapse text-center border transition-colors duration-500 ${darkMode ? "border-gray-600 text-white" : "border-gray-300 text-black"}`}>
@@ -249,30 +277,27 @@ export default function Updates({ filter, darkMode }) {
             <tbody>
               {filteredRows.map((row, i) => (
                 <tr key={i} className={`transition-all duration-300 cursor-pointer ${darkMode ? "hover:bg-gradient-to-r hover:from-teal-500/30 hover:to-purple-500/30" : "hover:bg-gradient-to-r hover:from-teal-400/20 hover:to-pink-400/20"}`}>
-                  <td className="border py-2">{i + 1}</td>
+                  <td className="border py-2">{i+1}</td>
                   <td className="border py-2">{row.name}</td>
-                  <td className="border py-2">{row.mill} {row.edited && <span className="text-xs text-yellow-300">✎</span>}</td>
+                  <td className="border py-2">
+                    {row.mill}{" "}
+                    {row.editHistory?.length > 0 && (
+                      <span
+                        className="text-xs text-yellow-300 cursor-pointer hover:underline"
+                        onClick={() => handleViewHistory(row)}
+                        title="Click to view edit history"
+                      >
+                        #{row.editHistory.length}✎
+                      </span>
+                    )}
+                  </td>
                   <td className="border py-2 space-x-2">
-                    <button
-                      onClick={() => handleEdit(i)}
-                      className="bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1 rounded-md font-semibold transition"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleViewMonthly(row.name)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md font-semibold transition"
-                    >
-                      View Monthly
-                    </button>
+                    <button onClick={() => handleEdit(i)} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 py-1 rounded-md text-sm transition">Edit</button>
+                    <button onClick={() => handleViewMonthly(row.name)} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 py-1 rounded-md text-sm transition">View Monthly</button>
                   </td>
                 </tr>
               ))}
-              {filteredRows.length === 0 && (
-                <tr>
-                  <td colSpan="4" className="py-3 text-gray-400 text-sm">No data found</td>
-                </tr>
-              )}
+              {filteredRows.length === 0 && <tr><td colSpan="4" className="py-3 text-gray-400 text-sm">No data found</td></tr>}
             </tbody>
           </table>
 
@@ -303,7 +328,7 @@ export default function Updates({ filter, darkMode }) {
                     <tbody>
                       {viewStudent.data.map((d, idx) => (
                         <tr key={idx} className="hover:bg-teal-600/30 transition-colors text-center">
-                          <td className="border py-2">{idx + 1}</td>
+                          <td className="border py-2">{idx+1}</td>
                           <td className="border py-2">{d.date}</td>
                           <td className="border py-2">{d.mill} {d.edited && <span className="text-sm text-yellow-300">✎</span>}</td>
                         </tr>
@@ -311,39 +336,29 @@ export default function Updates({ filter, darkMode }) {
                     </tbody>
                   </table>
                 </div>
-              ) : (
-                <p className="text-center text-gray-400">No monthly data found</p>
-              )}
+              ) : <p className="text-center text-gray-400">No monthly data found</p>}
 
-              <button
-                onClick={closeMonthlyView}
-                className="mt-5 w-full py-2 rounded-md font-medium text-white bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 hover:opacity-90 shadow-[0_0_15px_rgba(244,114,182,0.4)] transition"
-              >
+              <button onClick={closeMonthlyView} className="mt-5 w-full py-2 rounded-md font-medium text-white bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 hover:opacity-90 shadow-[0_0_15px_rgba(244,114,182,0.4)] transition">
                 Back
               </button>
             </div>
           </div>
         )}
 
+        {/* Edit History Modal */}
+      <EditHistoryModal
+        show={!!viewHistory}
+        onClose={closeHistoryView}
+        student={viewHistory}
+      />
+
+
         {/* Alert Popup */}
-        {alertData.show && (
-          <AlertPopup
-            show={alertData.show}
-            onClose={closeAlert}
-            title={alertData.title}
-            message={alertData.message}
-            type={alertData.type}
-            onConfirm={alertData.onConfirm}
-          />
-        )}
+        {alertData.show && <AlertPopup show={alertData.show} onClose={closeAlert} title={alertData.title} message={alertData.message} type={alertData.type} onConfirm={alertData.onConfirm} />}
       </div>
     </div>
   );
 }
-
-
-
-
 
 
 
