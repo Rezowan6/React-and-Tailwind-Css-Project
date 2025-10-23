@@ -190,7 +190,7 @@ export default function Home({ filter, darkMode }) {
                         ? "bg-teal-600 text-white border-teal-600 scale-[1.03]"
                         : darkMode
                         ? "border-gray-600 text-white hover:bg-gray-700"
-                        : "border-gray-300 text-gray-800 hover:bg-gray-100"
+                        : "border-gray-300 text-black hover:bg-gray-100"
                     }`}
                   >
                     <input

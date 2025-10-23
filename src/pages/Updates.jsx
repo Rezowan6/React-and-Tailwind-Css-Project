@@ -116,7 +116,8 @@ export default function Updates({ filter, darkMode }) {
         addToMonthlyData(row.name, millValue, true);
 
         setEditIndex(null);
-        showAlert("✅ Updated", `${row.name} এর মিল এন্ট্রি আপডেট হয়েছে`);
+        showAlert("✅ Updated", `The mill entry for ${row.name} has been successfully updated.`);
+
         return updated;
       }
 
@@ -327,7 +328,7 @@ export default function Updates({ filter, darkMode }) {
                     </thead>
                     <tbody>
                       {viewStudent.data.map((d, idx) => (
-                        <tr key={idx} className="hover:bg-teal-600/30 transition-colors text-center">
+                        <tr key={idx} className="hover:bg-teal-600/30 transition-colors text-center hover:cursor-pointer">
                           <td className="border py-2">{idx+1}</td>
                           <td className="border py-2">{d.date}</td>
                           <td className="border py-2">{d.mill} {d.edited && <span className="text-sm text-yellow-300">✎</span>}</td>
@@ -339,7 +340,7 @@ export default function Updates({ filter, darkMode }) {
               ) : <p className="text-center text-gray-400">No monthly data found</p>}
 
               <button onClick={closeMonthlyView} className="mt-5 w-full py-2 rounded-md font-medium text-white bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 hover:opacity-90 shadow-[0_0_15px_rgba(244,114,182,0.4)] transition">
-                Back
+                Close
               </button>
             </div>
           </div>
