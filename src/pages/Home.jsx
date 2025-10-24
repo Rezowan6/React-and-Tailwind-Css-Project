@@ -2,24 +2,22 @@
 import React, {useRef, useState, useEffect } from "react";
 import Button from "../components/Button.jsx";
 import ReusableCard from "../components/ReusableCard.jsx";
-import AlertPopup from "../components/AlertPopup.jsx";
 import EditHistoryModal from "../components/EditHistoryModal.jsx";
+import AlertPopup from "../components/AlertPopup.jsx";
 import useAlert from "../hooks/useAlert.js";
 
 export default function Home({ filter, darkMode }) {
   const formRef = useRef(null); // 👈 ref create
-  const [students, setStudents] = useState([]);
+  const [students, setStudents] = React.useState([]);
   const [name, setName] = useState("");
   const [studentTk, setStudentTk] = useState("");
   const [editIndex, setEditIndex] = useState(null);
   const [selectedAmount, setSelectedAmount] = useState(null);
-  const [showHistoryIndex, setShowHistoryIndex] = useState(null);
+  // const [showHistoryIndex, setShowHistoryIndex] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
-
   const [totalExpenses, setTotalExpenses] = useState(0);
-
-  const { alertData, showAlert, showConfirm, closeAlert } = useAlert();
+  const { alertData, showAlert, showConfirm, closeAlert, confirmAction } = useAlert();
 
   // Load students from localStorage
   useEffect(() => {
@@ -49,12 +47,12 @@ export default function Home({ filter, darkMode }) {
   // Add or Edit student
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!name || !studentTk) return showAlert("❌ Error", "Please fill all fields!");
+    if (!name || !studentTk) return showAlert("❌ Error", "Please fill all fields!",6000);
 
     // formatted date--
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-GB");
-    const monthKey = `${now.getMonth() + 1}-${now.getFullYear()}`; // month and date
+    const currentMonth  = `${now.getMonth() + 1}-${now.getFullYear()}`; // month and date
     const todayKey = formattedDate;
     // new student object
     const newStudent = {
@@ -68,15 +66,21 @@ export default function Home({ filter, darkMode }) {
     const isDuplicate = students.some(
       (s) => s.name.toLowerCase() === name.toLowerCase() && editIndex === null
     );
-    if (isDuplicate) return showAlert("❌ Error", "Same name already exists!");
+    if (isDuplicate) return showAlert("❌ Error", "Same name already exists!",6000);
     // new srudent added
     if (editIndex === null) {
       setStudents([...students, newStudent]);
-      showAlert("✅ Added", "Student added successfully!");
+      showAlert("✅ Added", "Student added successfully!",6000);
     } else {
-      // updated section
+        // updated section
         const updated = [...students];
         const student = updated[editIndex];
+
+        // check month reset
+        if (student.lastEditMonth !== currentMonth) {
+          student.editCount = 0; // reset edit count if new month
+          student.lastEditMonth = currentMonth; // update month record
+        }
 
         // Create new history
         const newHistory = [
@@ -91,25 +95,25 @@ export default function Home({ filter, darkMode }) {
           date: formattedDate,
           editCount: student.editCount + 1,
           editHistory: newHistory,
+          lastEditMonth: currentMonth, // ensure saved to object
         };
 
-        // state reset
         const monthlyLimit = 3;
-        const totalEditsThisMonth = student.editCount + 1; // এখন এই update সহ
+        const totalEditsThisMonth = student.editCount + 1;
         const remainingEdits = monthlyLimit - totalEditsThisMonth;
 
         setStudents(updated);
         setEditIndex(null);
         showAlert(
           "✅ Updated",
-          `Student updated successfully! Monthly Limit ${monthlyLimit} time, you can edit ${remainingEdits} more time.`
+          `Student updated successfully! You can edit ${remainingEdits} more time(s) this month (Limit: ${monthlyLimit}).`
         );
-    }
+      }
     clearForm();
 
   };
 
-  // Delete last student
+  // ✅ Delete last student
   const deleteLast = () => {
     if (!students.length) return showAlert("❌ Error", "No student data found to delete!");
 
@@ -118,15 +122,30 @@ export default function Home({ filter, darkMode }) {
       showAlert("✅ Deleted", "Last student deleted successfully!");
     });
   };
-  // restart button
+
+  // ✅ Restart all students
   const restartAll = () => {
     if (!students.length) return showAlert("❌ Error", "No student data to restart!");
 
-    showConfirm("⚠️ Restart All", "Are you sure you want to delete all students?", () => {
-      setStudents([]);
-      localStorage.removeItem("studentsData");
-      showAlert("✅ Cleared", "All students deleted successfully!");
-    });
+    showConfirm(
+      "⚠️ Restart All",
+      "Are you absolutely sure? This action cannot be undone.",
+      () => {
+        let confirmed = false;
+
+        showConfirm("🧹 Final Confirmation", "Really delete all student data?", () => {
+          confirmed = true;
+          setStudents([]);
+          localStorage.removeItem("studentsData");
+          showAlert("✅ Cleared", "All students deleted successfully!");
+        });
+
+        // Auto-close final confirm after 3s if user doesn’t click
+        setTimeout(() => {
+          if (!confirmed) closeAlert();
+        }, 6000);
+      }
+    );
   };
 
   // Filtered list
@@ -297,7 +316,7 @@ export default function Home({ filter, darkMode }) {
                         // current date info
                         const now = new Date();
                         const formattedDate = now.toLocaleDateString("en-GB");
-                        const monthKey = `${now.getMonth() + 1}-${now.getFullYear()}`;
+                        const currentMonth  = `${now.getMonth() + 1}-${now.getFullYear()}`;
                         const todayKey = formattedDate;
 
                         const monthlyLimit = 3;
@@ -308,10 +327,12 @@ export default function Home({ filter, darkMode }) {
                         const alreadyEditedToday = student.editHistory.some(
                           (h) => (typeof h === "object" ? h.date === todayKey : h === todayKey)
                         );
-                        if (totalEditsThisMonth === monthlyLimit) {
-                            showAlert(
+                        if (remainingEdits === 0) {
+                            setEditIndex(null);
+                            clearForm();
+                            return showAlert(
                               "⚠️ Limit Reached",
-                              `⚠️ You have reached the monthly edit limit (${monthlyLimit}) for this student.`
+                              `⚠️ You have reached the monthly edit limit ${monthlyLimit} for this student.`
                             );
                           }
                         else if (alreadyEditedToday) {
@@ -333,7 +354,7 @@ export default function Home({ filter, darkMode }) {
                         // scroll to form
                         formRef.current?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 py-1 rounded-md text-sm transition"
+                      className="editBtn"
                     >
                       Edit
                     </button>
@@ -370,14 +391,15 @@ export default function Home({ filter, darkMode }) {
 
 
         {/* Global Alert */}
-        <AlertPopup
-          show={alertData.show}
-          onClose={closeAlert}
-          title={alertData.title}
-          message={alertData.message}
-          type={alertData.type}
-          onConfirm={alertData.onConfirm}
-        />
+      <AlertPopup
+        show={alertData.show}
+        onClose={closeAlert}
+        title={alertData.title}
+        message={alertData.message}
+        type={alertData.type}
+        onConfirm={confirmAction}
+        autoHide={alertData.autoHide}
+      />
       </div>
     </div>
   );

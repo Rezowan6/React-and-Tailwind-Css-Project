@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import Button from "../components/Button.jsx";
 import AlertPopup from "../components/AlertPopup.jsx";
 import EditHistoryModal from "../components/EditHistoryModal.jsx";
 import useAlert from "../hooks/useAlert.js";
 
 export default function Updates({ filter, darkMode }) {
+  const formRef = useRef(null);
   const [students, setStudents] = useState([]);
   const [selectedName, setSelectedName] = useState("");
   const [selectedAmount, setSelectedAmount] = useState(null);
@@ -28,47 +29,54 @@ export default function Updates({ filter, darkMode }) {
   useEffect(() => {
     const savedStudents = JSON.parse(localStorage.getItem("studentsData")) || [];
     setStudents(savedStudents.map(({ name }) => ({ name })));
-
     const savedMillData = JSON.parse(localStorage.getItem("millData")) || [];
     setExtraRows(savedMillData);
+    console.log(setExtraRows)
   }, []);
 
   useEffect(() => {
     localStorage.setItem("millData", JSON.stringify(extraRows));
   }, [extraRows]);
 
-  // Add or update monthly data
-  const addToMonthlyData = (name, millValue, edit = false) => {
+  // ================= Helper Functions =================
+
+  const getTodayEntry = (name) => {
     const today = new Date().toLocaleDateString("en-GB");
     const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
     if (!monthlyData[name]) monthlyData[name] = [];
 
-    const todayEntry = monthlyData[name].find((entry) => entry.date === today);
-
-    if (todayEntry && !edit) {
-      showAlert(
-        "⚠️ Warning",
-        `A mill entry for ${name} has already been added today! You can only edit it.`
-      );
-      return false;
-    }
-
-    if (todayEntry && edit) {
-      todayEntry.mill = millValue;
-      todayEntry.edited = true;
-      todayEntry.editCount = todayEntry.editCount ? todayEntry.editCount + 1 : 1;
-    } else {
-      monthlyData[name].push({
-        date: today,
-        mill: millValue,
-        edited: false,
-        editCount: 0,
-      });
+    let todayEntry = monthlyData[name].find((entry) => entry.date === today);
+    if (!todayEntry) {
+      todayEntry = { date: today, mill: 0, edited: false, editCount: 0 };
+      monthlyData[name].push(todayEntry);
     }
 
     localStorage.setItem("monthlyMillData", JSON.stringify(monthlyData));
+    return todayEntry;
+  };
+
+  const saveMill = (name, millValue, edit = false) => {
+    const todayEntry = getTodayEntry(name);
+
+    if (edit) {
+      if (todayEntry.editCount >= 1) return false; // already edited today
+      todayEntry.mill = millValue;
+      todayEntry.edited = true;
+      todayEntry.editCount += 1;
+    } else {
+      if (todayEntry.mill > 0) return false; // already added today
+      todayEntry.mill = millValue;
+    }
+
+    const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
+    monthlyData[name] = monthlyData[name].map((entry) =>
+      entry.date === todayEntry.date ? todayEntry : entry
+    );
+    localStorage.setItem("monthlyMillData", JSON.stringify(monthlyData));
     return true;
   };
+
+  // ================= Event Handlers =================
 
   const handleCheckbox = (value) => {
     if (selectedAmount === value) {
@@ -80,7 +88,7 @@ export default function Updates({ filter, darkMode }) {
     }
   };
 
-  // Add or Edit Mill
+  // add mill
   const handleAdd = () => {
     if (!selectedName) return showAlert("❌ Error", "Please select a student!");
     if (!customInput) return showAlert("❌ Error", "Please enter or select a mill value!");
@@ -88,42 +96,33 @@ export default function Updates({ filter, darkMode }) {
     const millValue = Number(customInput);
 
     setExtraRows((prevRows) => {
-      // Edit mode
       if (editIndex !== null) {
         const updated = [...prevRows];
         const row = updated[editIndex];
-        const today = new Date().toLocaleDateString("en-GB");
 
-        const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
-        if (!monthlyData[row.name]) monthlyData[row.name] = [];
-        const todayEntry = monthlyData[row.name].find((entry) => entry.date === today);
-
-        if (todayEntry && todayEntry.editCount >= 1) {
+        const success = saveMill(row.name, millValue, true);
+        if (!success) {
           showAlert("⚠️ Warning", "You can only edit once per day!");
           return prevRows;
         }
 
-        const prevMill = row.mill; // আগের value
         updated[editIndex] = {
           ...row,
-          mill: millValue,
-          edited: true,
           editHistory: row.editHistory
-            ? [...row.editHistory, { prevMill: prevMill, newMill: millValue, date: today }]
-            : [{ prevMill: prevMill, newMill: millValue, date: today }],
+            ? [...row.editHistory, { prevMill: row.mill, newMill: millValue, date: new Date().toLocaleDateString("en-GB") }]
+            : [{ prevMill: row.mill, newMill: millValue, date: new Date().toLocaleDateString("en-GB") }],
         };
-
-        addToMonthlyData(row.name, millValue, true);
 
         setEditIndex(null);
         showAlert("✅ Updated", `The mill entry for ${row.name} has been successfully updated.`);
-
         return updated;
       }
 
-      // Add new
-      const success = addToMonthlyData(selectedName, millValue);
-      if (!success) return prevRows;
+      const success = saveMill(selectedName, millValue);
+      if (!success) {
+        showAlert("⚠️ Warning", `A mill entry for ${selectedName} has already been added today!`);
+        return prevRows;
+      }
 
       const rowIndex = prevRows.findIndex((r) => r.name === selectedName);
       if (rowIndex !== -1) {
@@ -145,11 +144,20 @@ export default function Updates({ filter, darkMode }) {
     setSelectedAmount(null);
     setCustomInput("");
   };
-
+  // handel edit
   const handleEdit = (index) => {
     const row = extraRows[index];
+    const todayEntry = getTodayEntry(row.name);
+
+    if (todayEntry.editCount >= 1) {
+      showAlert("⚠️ Warning", "You can only edit once per day!");
+      return;
+    }
+
+    formRef.current?.scrollIntoView({ behavior: "smooth" });
+
     setSelectedName(row.name);
-    setCustomInput(String(row.mill));
+    setCustomInput(String(todayEntry.mill));
     setSelectedAmount(null);
     setEditIndex(index);
   };
@@ -166,49 +174,63 @@ export default function Updates({ filter, darkMode }) {
   const closeMonthlyView = () => setViewStudent(null);
   const closeHistoryView = () => setViewHistory(null);
 
-  // Delete last
-  const deleteLast = () => {
-    if (!extraRows.length) return showAlert("❌ Error", "No student left to delete!");
-    showConfirm("🗑 Delete Last", "Are you sure you want to delete the last student?", () => {
-      const updatedRows = extraRows.slice(0, -1);
-      setExtraRows(updatedRows);
+// Delete last student
+const deleteLast = () => {
+  if (!extraRows.length) {
+    return showAlert("❌ Error", "No student data found to delete!");
+  }
 
-      const allStudents = JSON.parse(localStorage.getItem("studentsData")) || [];
-      const newStudents = allStudents.slice(0, -1);
-      localStorage.setItem("studentsData", JSON.stringify(newStudents));
-      showAlert("✅ Deleted", "Last student deleted successfully!");
-    });
-  };
+  // শেষের আইটেম বাদ দিয়ে নতুন অ্যারে তৈরি
+  const updatedRows = extraRows.slice(0, -1);
 
-  // Restart all
-  const restartAll = () => {
-    if (!extraRows.length) return showAlert("❌ Error", "No student data to restart!");
-    showConfirm(
-      "⚠️ Restart All",
-      "Are you sure you want to delete all students and data?",
-      () => {
-        setExtraRows([]);
-        setStudents([]);
-        localStorage.removeItem("studentsData");
-        localStorage.removeItem("millData");
-        localStorage.removeItem("monthlyMillData");
-        showAlert("✅ Cleared", "All student data cleared!");
-      }
-    );
-  };
+  // State আপডেট
+  setExtraRows(updatedRows);
+
+  // LocalStorage আপডেট
+  localStorage.setItem("millData", JSON.stringify(updatedRows));
+  localStorage.setItem(
+    "studentsData",
+    JSON.stringify(updatedRows.map(row => ({ name: row.name })))
+  );
+
+  showAlert("✅ Deleted", "Last student deleted successfully!");
+};
+
+
+
+// Restart all students
+const restartAll = () => {
+  if (!extraRows.length) return showAlert("❌ Error", "No student data to restart!");
+
+  showConfirm(
+    "⚠️ Restart All",
+    "Are you absolutely sure? This action cannot be undone.",
+    () => {
+      setExtraRows([]);
+      setStudents([]);
+      localStorage.removeItem("studentsData");
+      localStorage.removeItem("millData");
+      localStorage.removeItem("monthlyMillData");
+
+      showAlert("✅ Cleared", "All students deleted successfully!");
+    }
+  );
+};
+
 
   const filteredRows = extraRows.filter((row) =>
     row.name.toLowerCase().includes(filter.toLowerCase())
   );
-  // total meal count---
+
   const totalMeals = filteredRows.reduce((sum, row) => sum + (Number(row.mill) || 0), 0);
 
+  // ================= JSX =================
   return (
-    <div className={`min-h-screen p-5 font-[Times_New_Roman] transition-colors duration-500 ${bgClass}`}>
+    <div ref={formRef} className={`min-h-screen p-5 font-[Times_New_Roman] transition-colors duration-500 ${bgClass}`}>
       <div className="max-w-6xl mx-auto space-y-8">
         <h2 className="text-2xl lg:text-3xl font-bold text-center">Every Day Meal Updates</h2>
 
-        {/* Form */}
+        {/* Form Section */}
         <div className={`backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-lg space-y-6 transition-colors duration-500 ${cardBg}`}>
           <h3 className={`text-2xl font-semibold flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-800"}`}>
             ⚙️ {editIndex !== null ? "Edit Mill Entry" : "Add Mill Entry"}
@@ -218,12 +240,12 @@ export default function Updates({ filter, darkMode }) {
             onSubmit={(e) => { e.preventDefault(); handleAdd(); }}
             className="flex flex-col gap-6 w-full max-w-3xl mx-auto"
           >
+            {/* Student select */}
             <div className="flex flex-col gap-2">
               <label className="font-medium">Select Student:</label>
               <select
                 value={selectedName}
                 onChange={(e) => setSelectedName(e.target.value)}
-                required
                 className={`w-full md:w-2/3 lg:w-1/2 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent transition-all duration-300 ${inputBorder}`}
               >
                 <option value="">Select Name</option>
@@ -233,6 +255,7 @@ export default function Updates({ filter, darkMode }) {
               </select>
             </div>
 
+            {/* Mill selection */}
             <div className="flex flex-col gap-3">
               <label className="font-medium">Select Mill:</label>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4">
@@ -245,6 +268,7 @@ export default function Updates({ filter, darkMode }) {
               </div>
             </div>
 
+            {/* Custom Input + Submit */}
             <div className="flex flex-col sm:flex-row sm:items-end gap-4">
               <div className="flex flex-col gap-2 flex-1">
                 <label className="font-medium">Custom Input:</label>
@@ -253,7 +277,6 @@ export default function Updates({ filter, darkMode }) {
                   value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
                   placeholder="Enter Mill"
-                  required
                   className={`px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
                 />
               </div>
@@ -265,15 +288,11 @@ export default function Updates({ filter, darkMode }) {
           </form>
         </div>
 
-        {/* Table */}
+        {/* Table Section */}
         <div className={`backdrop-blur-sm p-5 rounded-md transition-colors duration-500 ${cardBg}`}>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">📊 Every Day Meal Data</h2>
-
-            {/* ✅ total meal */}
-            <p className={`text-xl font-medium ${darkMode ? "text-white" : "text-white"}`}>
-              Total Meal: {totalMeals}
-            </p>
+            <p className={`text-xl font-medium ${darkMode ? "text-white" : "text-white"}`}>Total Meal: {totalMeals}</p>
           </div>
 
           <table className={`w-full border-collapse text-center border transition-colors duration-500 ${darkMode ? "border-gray-600 text-white" : "border-gray-300 text-black"}`}>
@@ -303,15 +322,15 @@ export default function Updates({ filter, darkMode }) {
                     )}
                   </td>
                   <td className="border py-2 space-x-2">
-                    <button onClick={() => handleEdit(i)} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 py-1 rounded-md text-sm transition">Edit</button>
-                    <button onClick={() => handleViewMonthly(row.name)} className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 py-1 rounded-md text-sm transition">View Monthly</button>
+                    <button onClick={() => handleEdit(i)} className="editBtn">Edit</button>
+                    <button onClick={() => handleViewMonthly(row.name)} className="editBtn">View Monthly</button>
                   </td>
                 </tr>
               ))}
               {filteredRows.length === 0 && <tr><td colSpan="4" className="py-3 text-gray-400 text-sm">No data found</td></tr>}
             </tbody>
           </table>
-
+              {/* btn */}
           <div className="flex flex-col md:flex-row justify-center gap-4 mt-6">
             <Button type="delete" onClick={deleteLast} />
             <Button type="restart" onClick={restartAll} />
@@ -349,9 +368,7 @@ export default function Updates({ filter, darkMode }) {
                 </div>
               ) : <p className="text-center text-gray-400">No monthly data found</p>}
 
-              <button onClick={closeMonthlyView} className="closeBtn">
-                Close
-              </button>
+              <button onClick={closeMonthlyView} className="closeBtn">Close</button>
             </div>
           </div>
         )}
@@ -365,11 +382,21 @@ export default function Updates({ filter, darkMode }) {
         />
 
         {/* Alert Popup */}
-        {alertData.show && <AlertPopup show={alertData.show} onClose={closeAlert} title={alertData.title} message={alertData.message} type={alertData.type} onConfirm={alertData.onConfirm} />}
+        {alertData.show && <AlertPopup
+          show={alertData.show}
+          onClose={closeAlert}
+          title={alertData.title}
+          message={alertData.message}
+          type={alertData.type}
+          autoHide={alertData.autoHide}
+        />}
       </div>
     </div>
   );
 }
+
+
+
 
 
 

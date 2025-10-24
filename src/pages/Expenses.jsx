@@ -189,7 +189,7 @@ export default function Expenses() {
                         <td className="border border-white py-2">
                         <button
                             onClick={() => handleEdit(index)}
-                            className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 py-1 rounded-md text-sm transition"
+                            className="editBtn"
                         >
                             Edit
                         </button>

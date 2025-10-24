@@ -1,3 +1,4 @@
+// src/hooks/useAlert.js
 import { useState } from "react";
 
 export default function useAlert() {
@@ -5,34 +6,49 @@ export default function useAlert() {
         show: false,
         title: "",
         message: "",
-        type: "alert", // 'alert' | 'confirm'
+        type: "alert",
         onConfirm: null,
+        autoHide: 0,
     });
 
-const showAlert = (title, message) => {
-    setAlertData({
+    const showAlert = (title, message, autoHide = 6000) => {
+        setAlertData({
         show: true,
         title,
         message,
         type: "alert",
         onConfirm: null,
-    });
-};
+        autoHide,
+        });
+    };
 
-const showConfirm = (title, message, onConfirm) => {
-    setAlertData({
-        show: true,
-        title,
-        message,
-        type: "confirm",
-        onConfirm,
-    });
-};
+    const showConfirm = (title, message, onConfirm) => {
+        const data = { show: true, title, message, type: "confirm", onConfirm, autoHide: 0 };
+        if (alertData.show) {
+        setAlertData((prev) => ({ ...prev, show: false }));
+        setTimeout(() => setAlertData(data), 100);
+        } else {
+        setAlertData(data);
+        }
+    };
 
-const closeAlert = () => setAlertData({ ...alertData, show: false });
+    const closeAlert = () => setAlertData((prev) => ({ ...prev, show: false }));
 
-    return { alertData, showAlert, showConfirm, closeAlert };
+    const confirmAction = () => {
+        if (typeof alertData.onConfirm === "function") {
+        const callback = alertData.onConfirm;
+        closeAlert();
+        setTimeout(callback, 100);
+        }
+    };
+
+    return { alertData, showAlert, showConfirm, closeAlert, confirmAction };
 }
+
+
+
+
+
 
 
 
