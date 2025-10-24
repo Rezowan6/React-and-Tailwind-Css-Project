@@ -7,10 +7,6 @@
 html {
     scroll-behavior: smooth;
 }
-
-body{
-    background-color: darkslateblue;
-}
 .closeBtn{
     @apply mt-5 w-full py-2 rounded-md font-medium text-white bg-gradient-to-r from-red-500 via-pink-500 to-purple-500 hover:opacity-90 shadow-[0_0_15px_rgba(244,114,182,0.4)] transition;
 }

@@ -14,7 +14,14 @@ export default function ReusableCard({ title, amount, color }) {
                   hover:scale-105 transition-transform duration-300`}
     >
       <p className="text-lg md:text-xl font-semibold text-white">{title}</p>
-      <p className="text-2xl md:text-3xl font-bold mt-2 text-white">৳{amount}</p>
+      <p
+      className={`text-2xl md:text-3xl font-bold mt-2 ${
+        amount < 0 ? "text-red-600" : "text-white"
+      }`}
+      >
+      {amount}
+    </p>
+
     </div>
   );
 }

@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from "react";
+import React, {useRef, useState, useEffect } from "react";
 import Button from "../components/Button.jsx";
 import ReusableCard from "../components/ReusableCard.jsx";
 import AlertPopup from "../components/AlertPopup.jsx";
@@ -7,6 +7,7 @@ import EditHistoryModal from "../components/EditHistoryModal.jsx";
 import useAlert from "../hooks/useAlert.js";
 
 export default function Home({ filter, darkMode }) {
+  const formRef = useRef(null); // 👈 ref create
   const [students, setStudents] = useState([]);
   const [name, setName] = useState("");
   const [studentTk, setStudentTk] = useState("");
@@ -38,14 +39,22 @@ export default function Home({ filter, darkMode }) {
     setTotalExpenses(totalExp);
   }, []);
 
+      // clear form
+  const clearForm = () => {
+    setName("");
+    setStudentTk("");
+    setSelectedAmount(null);
+  };
+
   // Add or Edit student
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!name || !studentTk) return showAlert("❌ Error", "Please fill all fields!");
 
+    // formatted date--
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-GB");
-    const monthKey = `${now.getMonth() + 1}-${now.getFullYear()}`;
+    const monthKey = `${now.getMonth() + 1}-${now.getFullYear()}`; // month and date
     const todayKey = formattedDate;
     // new student object
     const newStudent = {
@@ -55,54 +64,49 @@ export default function Home({ filter, darkMode }) {
       editCount: 0,
       editHistory: [],
     };
-    // duplicate name
+    // duplicate name checked
     const isDuplicate = students.some(
       (s) => s.name.toLowerCase() === name.toLowerCase() && editIndex === null
     );
     if (isDuplicate) return showAlert("❌ Error", "Same name already exists!");
-
+    // new srudent added
     if (editIndex === null) {
       setStudents([...students, newStudent]);
       showAlert("✅ Added", "Student added successfully!");
     } else {
-      const updated = [...students];
-      const student = updated[editIndex];
+      // updated section
+        const updated = [...students];
+        const student = updated[editIndex];
 
-      const monthEdits = student.editHistory.filter((d) => {
-        const [day, month, year] = d.split("/");
-        return `${month}-${year}` === monthKey;
-      }).length;
-
-      const alreadyEditedToday = student.editHistory.includes(todayKey);
-
-      if (alreadyEditedToday)
-        return showAlert("⚠️ Warning", "You already edited this student today!");
-      if (monthEdits >= 4)
-        return showAlert("⚠️ Limit Reached", "You can edit only 4 times per month.");
-
-      const newHistory = [...student.editHistory];
-      if (!newHistory.includes(todayKey)) newHistory.push(todayKey);
-
-      const prevTk = student.studentTk; // আগের value
-      updated[editIndex] = {
-        ...student,
-        studentTk: Number(studentTk), // নতুন value
-        date: formattedDate,
-        editCount: student.editCount + 1,
-        editHistory: [
+        // Create new history
+        const newHistory = [
           ...(student.editHistory || []),
-          { prevTk, newTk: Number(studentTk), date: formattedDate }
-        ]
-      };
+          { prevTk: student.studentTk, newTk: Number(studentTk), date: formattedDate },
+        ];
 
-      setStudents(updated);
-      setEditIndex(null);
-      showAlert("✅ Updated", "Student updated successfully!");
+        // Updating student
+        updated[editIndex] = {
+          ...student,
+          studentTk: Number(studentTk),
+          date: formattedDate,
+          editCount: student.editCount + 1,
+          editHistory: newHistory,
+        };
+
+        // state reset
+        const monthlyLimit = 3;
+        const totalEditsThisMonth = student.editCount + 1; // এখন এই update সহ
+        const remainingEdits = monthlyLimit - totalEditsThisMonth;
+
+        setStudents(updated);
+        setEditIndex(null);
+        showAlert(
+          "✅ Updated",
+          `Student updated successfully! Monthly Limit ${monthlyLimit} time, you can edit ${remainingEdits} more time.`
+        );
     }
+    clearForm();
 
-    setName("");
-    setStudentTk("");
-    setSelectedAmount(null);
   };
 
   // Delete last student
@@ -149,7 +153,7 @@ export default function Home({ filter, darkMode }) {
   const inputBorder = darkMode ? "border-white text-white placeholder-white" : "border-white text-black placeholder-white";
 
   return (
-    <div className={`min-h-screen p-5 font-[Times_New_Roman] transition-colors duration-500 ${bgClass}`}>
+    <div ref={formRef} className={`min-h-screen p-5 font-[Times_New_Roman] transition-colors duration-500 ${bgClass}`}>
       <div className="max-w-6xl mx-auto space-y-8">
         <h2 className="text-2xl lg:text-3xl font-bold text-center">{`Students Mill Management`}</h2>
 
@@ -177,12 +181,11 @@ export default function Home({ filter, darkMode }) {
                 onChange={(e) =>
                   setName(e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1))
                 }
-                required
                 className={`w-full md:w-2/3 lg:w-1/2 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
               />
             </div>
 
-            {/* Money Options */}
+            {/* check box Money Options */}
             <div className="flex flex-col gap-3">
               <label className="font-medium">Select Money:</label>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4">
@@ -218,11 +221,10 @@ export default function Home({ filter, darkMode }) {
                   value={studentTk}
                   onChange={(e) => setStudentTk(e.target.value)}
                   placeholder="Enter Total Tk"
-                  required
                   className={`px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
                 />
               </div>
-              {/* add student button */}
+              {/* add/update student button */}
               <button
                 type="submit"
                 className="addUpdateBtn"
@@ -267,6 +269,8 @@ export default function Home({ filter, darkMode }) {
                 >
                   <td className="border py-2">{i + 1}</td>
                   <td className="border py-2">{student.name}</td>
+
+                  {/* total money and edit history */}
                   <td className="border py-2">
                     ৳{student.studentTk}
                     {student.editCount > 0 && (
@@ -283,19 +287,58 @@ export default function Home({ filter, darkMode }) {
                     )}
                   </td>
                   <td className="border py-2">{student.date}</td>
+
+                  {/* action sectin and edit btn */}
                   <td className="border py-2">
                     <button
                       onClick={() => {
+                        const student = students[i];
+
+                        // current date info
+                        const now = new Date();
+                        const formattedDate = now.toLocaleDateString("en-GB");
+                        const monthKey = `${now.getMonth() + 1}-${now.getFullYear()}`;
+                        const todayKey = formattedDate;
+
+                        const monthlyLimit = 3;
+                        const totalEditsThisMonth = student.editCount + 1; // এই update সহ
+                        const remainingEdits = monthlyLimit - totalEditsThisMonth;
+
+                        // আজকে edit করা হয়েছে কি না
+                        const alreadyEditedToday = student.editHistory.some(
+                          (h) => (typeof h === "object" ? h.date === todayKey : h === todayKey)
+                        );
+                        if (totalEditsThisMonth === monthlyLimit) {
+                            showAlert(
+                              "⚠️ Limit Reached",
+                              `⚠️ You have reached the monthly edit limit (${monthlyLimit}) for this student.`
+                            );
+                          }
+                        else if (alreadyEditedToday) {
+                          // warning দেখাও, edit mode off
+                          setEditIndex(null);
+                          clearForm();
+                          return showAlert(
+                            "⚠️ Warning",
+                            "You already edited this student today!"
+                          );
+                        }
+
+                        // যদি আজ edit না করা হয়ে থাকে, তাহলে ফর্মে ভরো এবং scroll করাও
                         setName(student.name);
                         setStudentTk(student.studentTk);
                         setEditIndex(i);
                         setSelectedAmount(student.studentTk);
+
+                        // scroll to form
+                        formRef.current?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 py-1 rounded-md text-sm transition"
+                      className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 py-1 rounded-md text-sm transition"
                     >
                       Edit
                     </button>
                   </td>
+
                 </tr>
               ))}
               {filtered.length === 0 && (
