@@ -5,6 +5,7 @@ import ReusableCard from "../components/ReusableCard.jsx";
 import EditHistoryModal from "../components/EditHistoryModal.jsx";
 import AlertPopup from "../components/AlertPopup.jsx";
 import useAlert from "../hooks/useAlert.js";
+import { useNavigate } from "react-router-dom";
 
 export default function Home({ filter, darkMode }) {
   const formRef = useRef(null); // 👈 ref create
@@ -18,6 +19,7 @@ export default function Home({ filter, darkMode }) {
   const [showHistory, setShowHistory] = useState(false);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const { alertData, showAlert, showConfirm, closeAlert, confirmAction } = useAlert();
+  const navigate = useNavigate();
 
   // Load students from localStorage
   useEffect(() => {
@@ -66,7 +68,10 @@ export default function Home({ filter, darkMode }) {
     const isDuplicate = students.some(
       (s) => s.name.toLowerCase() === name.toLowerCase() && editIndex === null
     );
-    if (isDuplicate) return showAlert("❌ Error", "Same name already exists!",6000);
+    if (isDuplicate){ 
+      clearForm();
+      return showAlert("❌ Error", "Same name already exists!",6000);
+    }
     // new srudent added
     if (editIndex === null) {
       setStudents([...students, newStudent]);
@@ -110,7 +115,6 @@ export default function Home({ filter, darkMode }) {
         );
       }
     clearForm();
-
   };
 
   // ✅ Delete last student
@@ -170,6 +174,14 @@ export default function Home({ filter, darkMode }) {
   const bgClass = darkMode ? "bg-[#121212] text-white" : "bg-gradient-to-r from-green-600/80 to-pink-600/80 text-black";
   const cardBg = darkMode ? "bg-[#1E1E2F]/90" : "bg-white/10";
   const inputBorder = darkMode ? "border-white text-white placeholder-white" : "border-white text-black placeholder-white";
+
+    // ✅ শুধু id, name, totalMoney পাঠানো হবে
+  const limitedData = students.map((s, index) => ({
+    id: index + 1,
+    name: s.name,
+    totalMoney: s.studentTk, // তোমার data-তে totalMoney field নেই, আছে studentTk
+  }));
+
 
   return (
     <div ref={formRef} className={`min-h-screen p-5 font-[Times_New_Roman] transition-colors duration-500 ${bgClass}`}>

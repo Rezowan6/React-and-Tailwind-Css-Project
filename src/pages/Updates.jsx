@@ -77,7 +77,7 @@ export default function Updates({ filter, darkMode }) {
   };
 
   // ================= Event Handlers =================
-
+  // check box
   const handleCheckbox = (value) => {
     if (selectedAmount === value) {
       setSelectedAmount(null);
@@ -158,7 +158,7 @@ export default function Updates({ filter, darkMode }) {
 
     setSelectedName(row.name);
     setCustomInput(String(todayEntry.mill));
-    setSelectedAmount(null);
+    setSelectedAmount(todayEntry.amount || row.amount || todayEntry.mill || "");
     setEditIndex(index);
   };
 
@@ -180,22 +180,31 @@ const deleteLast = () => {
     return showAlert("❌ Error", "No student data found to delete!");
   }
 
-  // শেষের আইটেম বাদ দিয়ে নতুন অ্যারে তৈরি
   const updatedRows = extraRows.slice(0, -1);
 
-  // State আপডেট
-  setExtraRows(updatedRows);
+  // monthlyMillData থেকে last student remove করা
+  const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
+  const lastStudent = extraRows[extraRows.length - 1];
+  if (lastStudent && lastStudent.name) {
+    delete monthlyData[lastStudent.name];
+    localStorage.setItem("monthlyMillData", JSON.stringify(monthlyData));
+  }
 
-  // LocalStorage আপডেট
+  // state reset
+  setExtraRows(updatedRows);
+  setEditIndex(null);
+  setSelectedName("");
+  setSelectedAmount(null);
+  setCustomInput("");
+
   localStorage.setItem("millData", JSON.stringify(updatedRows));
   localStorage.setItem(
     "studentsData",
-    JSON.stringify(updatedRows.map(row => ({ name: row.name })))
+    JSON.stringify(updatedRows.map((row) => ({ name: row.name })))
   );
 
   showAlert("✅ Deleted", "Last student deleted successfully!");
 };
-
 
 
 // Restart all students
@@ -208,6 +217,11 @@ const restartAll = () => {
     () => {
       setExtraRows([]);
       setStudents([]);
+      setEditIndex(null);
+      setSelectedName("");
+      setSelectedAmount(null);
+      setCustomInput("");
+
       localStorage.removeItem("studentsData");
       localStorage.removeItem("millData");
       localStorage.removeItem("monthlyMillData");
@@ -217,12 +231,13 @@ const restartAll = () => {
   );
 };
 
-
   const filteredRows = extraRows.filter((row) =>
     row.name.toLowerCase().includes(filter.toLowerCase())
   );
 
   const totalMeals = filteredRows.reduce((sum, row) => sum + (Number(row.mill) || 0), 0);
+
+  
 
   // ================= JSX =================
   return (
