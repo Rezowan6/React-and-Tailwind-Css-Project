@@ -55,14 +55,14 @@ export default function Home({ filter, darkMode }) {
     const now = new Date();
     const formattedDate = now.toLocaleDateString("en-GB");
     const currentMonth  = `${now.getMonth() + 1}-${now.getFullYear()}`; // month and date
-    const todayKey = formattedDate;
     // new student object
     const newStudent = {
       name,
       studentTk: Number(studentTk),
       date: formattedDate,
       editCount: 0,
-      editHistory: [],
+      editHistory: [{ newTk: Number(studentTk), date: formattedDate }],
+      lastEditMonth: currentMonth, // future edit limit track এর জন্য
     };
     // duplicate name checked
     const isDuplicate = students.some(
@@ -161,6 +161,7 @@ const restartAll = () => {
         localStorage.removeItem("studentsData");
         localStorage.removeItem("millData");
         localStorage.removeItem("monthlyMillData"); // 🔹 also clear Updates.jsx data
+        clearForm();
 
         showAlert("✅ Cleared", "All students deleted successfully!");
       });
@@ -217,7 +218,7 @@ const restartAll = () => {
               darkMode ? "textWhite" : "textBlack"
             }`}
           >
-            📅 {editIndex !== null ? "Edit Money Entry" : "Add Money Entry"}
+            ❤️ {editIndex !== null ? "Edit Money Entry" : "Add Money Entry"}
           </h3>
 
           <form
@@ -306,7 +307,6 @@ const restartAll = () => {
                 <th className="border py-2">ID</th>
                 <th className="border py-2">Name</th>
                 <th className="border py-2">Money</th>
-                <th className="border py-2">Date</th>
                 <th className="border py-2">Action</th>
               </tr>
             </thead>
@@ -339,7 +339,6 @@ const restartAll = () => {
 
                     )}
                   </td>
-                  <td className="border py-2">{student.date}</td>
 
                   {/* action sectin and edit btn */}
                   <td className="border py-2">

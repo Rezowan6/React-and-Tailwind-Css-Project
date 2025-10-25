@@ -14,7 +14,10 @@ export default function Updates({ filter, darkMode }) {
   const [viewStudent, setViewStudent] = useState(null);
   const [viewHistory, setViewHistory] = useState(null);
 
-  const { alertData, showAlert, showConfirm, closeAlert } = useAlert();
+  // === new popup states ===
+  const [editPopup, setEditPopup] = useState({ show: false, index: null, value: "" });
+
+  const { alertData, showAlert, closeAlert } = useAlert();
 
   const bgClass = darkMode
     ? "bg-[#121212] text-white"
@@ -142,41 +145,67 @@ export default function Updates({ filter, darkMode }) {
     setCustomInput("");
   };
 
-  const handleEdit = (index) => {
-    const row = extraRows[index];
-    const todayEntry = getTodayEntry(row.name);
-
-    if (todayEntry.editCount >= 1) {
-      showAlert("⚠️ Warning", "You can only edit once per day!");
-      return;
-    }
-
-    formRef.current?.scrollIntoView({ behavior: "smooth" });
-
-    setSelectedName(row.name);
-    setCustomInput(String(todayEntry.mill));
-    setSelectedAmount(todayEntry.amount || row.amount || todayEntry.mill || "");
-    setEditIndex(index);
-  };
-
   const handleViewMonthly = (name) => {
     const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
     setViewStudent({ name, data: monthlyData[name] || [] });
   };
 
-  const handleViewHistory = (row) => {
-    setViewHistory(row);
-  };
-
   const closeMonthlyView = () => setViewStudent(null);
   const closeHistoryView = () => setViewHistory(null);
-
 
   const filteredRows = extraRows.filter((row) =>
     row.name.toLowerCase().includes(filter.toLowerCase())
   );
 
   const totalMeals = filteredRows.reduce((sum, row) => sum + (Number(row.mill) || 0), 0);
+
+  // ========= Mini Popup Save =========
+const handlePopupSave = () => {
+  if (!editPopup.value) return showAlert("⚠️ Warning", "Please enter a meal value!");
+
+  const idx = editPopup.index;
+  const updated = { ...viewStudent };
+
+  const todayEntry = updated.data[idx];
+
+  // Check if this entry has already been edited ever today
+  if (todayEntry.edited) {
+    return showAlert("⚠️ Warning", "You have already edited this day's entry! No more edits allowed today.");
+  }
+
+  // Update monthly modal data
+  todayEntry.mill = Number(editPopup.value);
+  todayEntry.edited = true;       // mark as edited today
+  todayEntry.editLocked = true;   // lifetime lock for today
+
+  // Save to localStorage
+  const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
+  monthlyData[updated.name] = updated.data;
+  localStorage.setItem("monthlyMillData", JSON.stringify(monthlyData));
+
+  setViewStudent(updated);
+
+  // Update main table
+  setExtraRows(prevRows => {
+    return prevRows.map(row => {
+      if (row.name === updated.name) {
+        return {
+          ...row,
+          mill: Number(editPopup.value), // today's value replaces old
+          todayValue: Number(editPopup.value),
+          editedToday: true, // hide edit icon
+        };
+      }
+      return row;
+    });
+  });
+
+  // Close popup
+  setEditPopup({ show: false, index: null, value: "" });
+  showAlert("✅ Updated", "Meal entry updated successfully!");
+};
+
+
 
   // ================= JSX =================
   return (
@@ -194,7 +223,6 @@ export default function Updates({ filter, darkMode }) {
             onSubmit={(e) => { e.preventDefault(); handleAdd(); }}
             className="form"
           >
-            {/* Student select */}
             <div className="inputDiv">
               <label className="font-medium">Select Student:</label>
               <select
@@ -209,7 +237,6 @@ export default function Updates({ filter, darkMode }) {
               </select>
             </div>
 
-            {/* Mill selection */}
             <div className="checkDiv">
               <label className="font-medium">Select Mill:</label>
               <div className="selectDiv">
@@ -222,7 +249,6 @@ export default function Updates({ filter, darkMode }) {
               </div>
             </div>
 
-            {/* Custom Input + Submit */}
             <div className="customInputDiv">
               <div className="customDiv">
                 <label className="font-medium">Custom Input:</label>
@@ -241,7 +267,6 @@ export default function Updates({ filter, darkMode }) {
             </div>
           </form>
         </div>
-
 
         {/* Table Section */}
         <div className={`tableMainDiv ${cardBg}`}>
@@ -267,7 +292,14 @@ export default function Updates({ filter, darkMode }) {
                     <td className="border py-2">{i+1}</td>
                     <td className="border py-2">{s.name}</td>
                     <td className="border py-2">{row ? row.mill : 0}</td>
-                    <td className="border py-2">{/* blank */}</td>
+                    <td className="border py-2 text-center">
+                      <button
+                        onClick={() => handleViewMonthly(s.name)}
+                        className="editBtn"
+                      >
+                        View Monthly
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
@@ -278,15 +310,14 @@ export default function Updates({ filter, darkMode }) {
               )}
             </tbody>
           </table>
-          
         </div>
 
         {/* Monthly View Modal */}
         {viewStudent && (
-          <div className="fixed inset-0 bg-black/90 flex justify-center items-center z-50 p-5">
-            <div className={`relative p-6 rounded-2xl w-full max-w-96 backdrop-blur-md border border-teal-400 shadow-[0_0_25px_rgba(20,184,166,0.4)] transition-all duration-500 ${cardBg}`}>
-              <h3 className="text-xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-purple-500 to-pink-500 text-center">
-                📅 {viewStudent.name}'s Monthly Mill Data
+          <div className="monthlyViewContainer">
+            <div className={`monthlyViewDiv ${cardBg}`}>
+              <h3 className="monthlyViewHeader">
+                📝 {viewStudent.name}'s Monthly Mill Data
               </h3>
 
               {viewStudent.data.length > 0 ? (
@@ -301,10 +332,19 @@ export default function Updates({ filter, darkMode }) {
                     </thead>
                     <tbody>
                       {viewStudent.data.map((d, idx) => (
-                        <tr key={idx} className="hover:bg-teal-600/30 transition-colors text-center hover:cursor-pointer">
+                        <tr key={idx} className="monthlyViewTr">
                           <td className="border py-2">{idx+1}</td>
                           <td className="border py-2">{d.date}</td>
-                          <td className="border py-2">{d.mill} {d.edited && <span className="text-sm text-yellow-300">✎</span>}</td>
+                          <td className="border py-2 text-center">
+                            {d.mill}
+                            {d.edited && <span className="text-sm text-yellow-300 ml-1"></span>}
+                            <span
+                              onClick={() => setEditPopup({ show: true, index: idx, value: d.mill })}
+                              className="ml-2 text-indigo-400 hover:text-yellow-400 cursor-pointer hover:underline"
+                              title="Edit this day's meal"
+                            >#✎
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -317,7 +357,35 @@ export default function Updates({ filter, darkMode }) {
           </div>
         )}
 
-        {/* Edit History Modal */}
+        {/* === Mini Edit Popup === */}
+        {editPopup.show && (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+            <div className={`p-6 rounded-2xl shadow-lg ${darkMode ? "bg-[#1E1E2F]" : "bg-white/95 text-black"}`}>
+              <h3 className="text-lg font-semibold mb-3">✎ Edit Meal Entry</h3>
+              <input
+                type="number"
+                value={editPopup.value}
+                onChange={(e) => setEditPopup({ ...editPopup, value: e.target.value })}
+                className={`border rounded px-3 py-1 w-40 text-center ${darkMode ? "bg-gray-800 text-white" : "bg-gray-100"}`}
+              />
+              <div className="flex justify-end gap-3 mt-4">
+                <button
+                  onClick={handlePopupSave}
+                  className="bg-green-600 hover:bg-green-700 px-4 py-1 rounded text-white"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setEditPopup({ show: false, index: null, value: "" })}
+                  className="bg-red-600 hover:bg-red-700 px-4 py-1 rounded text-white"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <EditHistoryModal
           show={!!viewHistory}
           onClose={closeHistoryView}
@@ -325,24 +393,18 @@ export default function Updates({ filter, darkMode }) {
           headerLabel="Meal"
         />
 
-        {/* Alert Popup */}
-        {alertData.show && <AlertPopup
-          show={alertData.show}
-          onClose={closeAlert}
-          title={alertData.title}
-          message={alertData.message}
-          type={alertData.type}
-          autoHide={alertData.autoHide}
-        />}
+        {alertData.show && (
+          <AlertPopup
+            show={alertData.show}
+            onClose={closeAlert}
+            title={alertData.title}
+            message={alertData.message}
+            type={alertData.type}
+            autoHide={alertData.autoHide}
+          />
+        )}
       </div>
     </div>
   );
 }
-
-
-
-
-
-
-
 
