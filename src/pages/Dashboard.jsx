@@ -42,7 +42,9 @@ export default function Dashboard() {
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
-// PDF file
+
+  // PDF file
+
 const generatePDF = () => {
   if (students.length === 0) {
     alert("No student data to export!");
@@ -50,11 +52,45 @@ const generatePDF = () => {
   }
 
   const doc = new jsPDF({ orientation: "landscape" });
+  const pageWidth = doc.internal.pageSize.getWidth();
 
-  doc.setFontSize(18);
-  doc.setTextColor(0, 0, 128);
-  doc.text("Student Dashboard", 14, 20);
+  // ===== HEADER =====
+  doc.setFillColor(22, 160, 133);
+  doc.rect(0, 0, pageWidth, 25, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(255, 255, 255);
+  doc.text("Student Dashboard Report", 14, 17);
 
+  doc.setFontSize(10);
+  doc.setTextColor(230);
+  const today = new Date();
+  const formattedDate = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+
+  doc.text(`Generated on: ${formattedDate}`, pageWidth - 60, 17);
+
+
+  // ===== SUMMARY BOX =====
+  doc.setFillColor(245, 245, 245);
+  doc.roundedRect(10, 30, pageWidth - 20, 18, 3, 3, "F");
+
+  const summaryX = [14, 85, 160, 235];
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+
+  doc.setTextColor(0, 102, 51);
+  doc.text(`Total Money: ${totalMoney.toLocaleString()}`, summaryX[0], 42);
+
+  doc.setTextColor(204, 0, 0);
+  doc.text(`Total Expenses: ${totalExpenses.toLocaleString()}`, summaryX[1], 42);
+
+  doc.setTextColor(102, 0, 204);
+  doc.text(`Total Meal: ${totalMeal.toLocaleString()}`, summaryX[2], 42);
+
+  doc.setTextColor(0, 150, 150);
+  doc.text(`Per Meal Expense: ${expensePerMeal.toFixed(2)}`, summaryX[3], 42);
+
+  // ===== TABLE HEAD =====
   const tableColumn = [
     "ID",
     "Name",
@@ -65,6 +101,7 @@ const generatePDF = () => {
     "Negative",
   ];
 
+  // ===== TABLE BODY =====
   const tableRows = students.map((student) => {
     const studentMill = Number(student.totalMill || 0);
     const studentMoney = Number(student.totalMoney || 0);
@@ -77,36 +114,80 @@ const generatePDF = () => {
       studentMoney.toLocaleString(),
       studentMill.toLocaleString(),
       studentExpense.toLocaleString(),
-      Number(diff) > 0 ? Number(diff).toLocaleString() : "-",
-      Number(diff) < 0 ? Number(diff).toLocaleString() : "-",
+      Number(diff) > 0 ? Number(diff).toLocaleString() : "",
+      Number(diff) < 0 ? Number(diff).toLocaleString() : "",
     ];
   });
 
+  // ===== TABLE DESIGN =====
   autoTable(doc, {
     head: [tableColumn],
     body: tableRows,
-    startY: 30,
+    startY: 55,
+    tableWidth: '100%',
     styles: {
-      font: "courier", // monospace, number alignment ঠিক থাকবে
+      font: "helvetica",
       fontSize: 11,
       cellPadding: 4,
+      valign: "middle",
+      lineColor: [220, 220, 220],
+      lineWidth: 0.2,
     },
-    headStyles: { fillColor: [22, 160, 133], textColor: 255 },
-    alternateRowStyles: { fillColor: [240, 248, 255] },
+    headStyles: {
+      fillColor: [22, 160, 133],
+      textColor: 255,
+      fontStyle: "bold",
+      halign: "center",
+    },
+    bodyStyles: {
+      halign: "center",
+    },
+    alternateRowStyles: { fillColor: [245, 255, 250] },
     columnStyles: {
-      0: { cellWidth: 10, halign: "center" },
-      1: { cellWidth: 50, halign: "center" },
-      2: { cellWidth: 30, halign: "center" },
-      3: { cellWidth: 25, halign: "center" },
-      4: { cellWidth: 30, halign: "center" },
-      5: { cellWidth: 30, halign: "center" },
-      6: { cellWidth: 30, halign: "center" },
+      0: { cellWidth: 15 },
+      1: { cellWidth: 55, halign: "left" },
+      2: { cellWidth: 35 },
+      3: { cellWidth: 30 },
+      4: { cellWidth: 35 },
+      5: { cellWidth: 35, textColor: [0, 128, 0], fontStyle: "bold" }, // positive
+      6: { cellWidth: 35, textColor: [255, 0, 0], fontStyle: "bold" }, // negative
+    },
+    margin: { left: 10, right: 10 },
+    didDrawPage: function (data) {
+      const pageCount = doc.internal.getNumberOfPages();
+      const pageHeight = doc.internal.pageSize.height;
+      const pageWidth = doc.internal.pageSize.width;
+
+      // ===== FOOTER LINE =====
+      doc.setDrawColor(200);
+      doc.line(10, pageHeight - 30, pageWidth - 10, pageHeight - 30);
+
+      // ===== SIGNATURE SECTION =====
+      doc.setFontSize(11);
+      doc.setTextColor(0);
+      doc.text("Prepared By:", 20, pageHeight - 20);
+      doc.text("Verified By:", pageWidth / 2 + 20, pageHeight - 20);
+
+      // Signature lines
+      doc.line(45, pageHeight - 22, 110, pageHeight - 22); // Prepared By line
+      doc.line(pageWidth / 2 + 45, pageHeight - 22, pageWidth / 2 + 110, pageHeight - 22); // Verified By line
+
+      // Optional text under signature
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text("(Name & Signature)", 60, pageHeight - 15);
+      doc.text("(Name & Signature)", pageWidth / 2 + 65, pageHeight - 15);
+
+      // ===== FOOTER INFO =====
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text("Generated by Student Meal Manager", 14, pageHeight - 5);
+      doc.text(`Page ${data.pageNumber} of ${pageCount}`, pageWidth - 40, pageHeight - 5);
     },
   });
 
-  doc.save("student_dashboard.pdf");
+  doc.save("student_dashboard_report.pdf");
 };
-
 
 
   return (
@@ -126,7 +207,7 @@ const generatePDF = () => {
         <h3 className="text-purple-600 dark:text-purple-400 break-words">
           Total Meal: {totalMeal}
         </h3>
-        <h3 className="text-yellow-500 dark:text-yellow-400 break-words">
+        <h3 className="text-orange-500 dark:text-amber-500 break-words">
           Per Meal Expense: ৳{expensePerMeal.toFixed(2)}
         </h3>
       </div>
@@ -187,7 +268,7 @@ const generatePDF = () => {
       <div className="flex justify-end mt-4">
         <button
           onClick={generatePDF}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+          className="yesBtn lg:w-52"
         >
           Download PDF
         </button>
