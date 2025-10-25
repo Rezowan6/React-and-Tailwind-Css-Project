@@ -151,7 +151,7 @@ export default function Expenses() {
             </div>
 
             {/* Cards */}
-            <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
+            <div className="cardDiv">
             <ReusableCard title="Total Expenses" amount={totalExpenses} color="red" />
             <ReusableCard title="Remaining Money" amount={remainingMoney} color="green" />
             </div>

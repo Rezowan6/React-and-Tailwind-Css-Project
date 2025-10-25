@@ -25,3 +25,93 @@ html {
 .editBtn{
     @apply bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-3 py-1 rounded-md text-sm transition;
 }
+
+/* containers div */
+.containers{
+    @apply min-h-screen p-5 font-[Times_New_Roman] transition-colors duration-500;
+}
+.mainContent{
+    @apply max-w-6xl mx-auto space-y-8;
+}
+.headerText{
+    @apply text-2xl lg:text-3xl font-bold text-center;
+}
+/* form section */
+.addForm{
+    @apply backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-lg space-y-6 transition-colors duration-500;
+}
+.headerForm{
+    @apply text-2xl font-semibold flex items-center gap-2 ;
+}
+.textWhite{
+    @apply text-white;
+}
+.textBlack{
+    @apply text-black;
+}
+.form{
+    @apply flex flex-col gap-6 w-full max-w-3xl mx-auto;
+}
+.inputDiv{
+    @apply flex flex-col gap-2;
+}
+.input{
+    @apply w-full md:w-2/3 lg:w-1/2 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent transition-all duration-300;
+}
+/* check box */
+.checkDiv{
+    @apply flex flex-col gap-3;
+}
+.selectDiv{
+    @apply grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4;
+}
+.lable{
+    @apply flex items-center justify-center gap-2 border rounded-lg px-3 py-2 cursor-pointer font-medium transition-all duration-300 shadow-sm hover:shadow-md;
+}
+.selectValue{
+    @apply bg-teal-600 text-white border-teal-600 scale-[1.03];
+}
+.darkVlaue{
+    @apply border-gray-600 text-white hover:bg-gray-700;
+}
+.lightValue{
+    @apply border-gray-300 text-black hover:bg-gray-100;
+}
+/* custom input */
+.customInputDiv{
+    @apply flex flex-col sm:flex-row sm:items-end gap-4;
+}
+.customDiv{
+    @apply flex flex-col gap-2 flex-1;
+}
+.customInput{
+    @apply px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent;
+}
+/* card section */
+.cardDiv{
+    @apply flex flex-col md:flex-row gap-6 justify-center items-center cursor-pointer;
+}
+.tableMainDiv{
+    @apply backdrop-blur-sm p-5 rounded-md transition-colors duration-500;
+}
+.tableTitle{
+    @apply text-xl font-semibold mb-4;
+}
+.table{
+    @apply w-full border-collapse text-center border transition-colors duration-500;
+}
+.tableDark{
+    @apply border-gray-700 text-white;
+}
+.tableLight{
+    @apply border-black text-black;
+}
+.tableRow{
+    @apply transition-all duration-300 cursor-pointer;
+}
+.tableRowDark{
+    @apply hover:bg-gradient-to-r hover:from-teal-500/30 hover:to-purple-500/30;
+}
+.tableRowLight{
+    @apply hover:bg-gradient-to-r hover:from-teal-400/20 hover:to-pink-400/20;
+}

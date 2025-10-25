@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect } from "react";
-import Button from "../components/Button.jsx";
 import AlertPopup from "../components/AlertPopup.jsx";
 import EditHistoryModal from "../components/EditHistoryModal.jsx";
 import useAlert from "../hooks/useAlert.js";
@@ -31,7 +30,6 @@ export default function Updates({ filter, darkMode }) {
     setStudents(savedStudents.map(({ name }) => ({ name })));
     const savedMillData = JSON.parse(localStorage.getItem("millData")) || [];
     setExtraRows(savedMillData);
-    console.log(setExtraRows)
   }, []);
 
   useEffect(() => {
@@ -59,12 +57,12 @@ export default function Updates({ filter, darkMode }) {
     const todayEntry = getTodayEntry(name);
 
     if (edit) {
-      if (todayEntry.editCount >= 1) return false; // already edited today
+      if (todayEntry.editCount >= 1) return false;
       todayEntry.mill = millValue;
       todayEntry.edited = true;
       todayEntry.editCount += 1;
     } else {
-      if (todayEntry.mill > 0) return false; // already added today
+      if (todayEntry.mill > 0) return false;
       todayEntry.mill = millValue;
     }
 
@@ -77,7 +75,6 @@ export default function Updates({ filter, darkMode }) {
   };
 
   // ================= Event Handlers =================
-  // check box
   const handleCheckbox = (value) => {
     if (selectedAmount === value) {
       setSelectedAmount(null);
@@ -88,7 +85,6 @@ export default function Updates({ filter, darkMode }) {
     }
   };
 
-  // add mill
   const handleAdd = () => {
     if (!selectedName) return showAlert("❌ Error", "Please select a student!");
     if (!customInput) return showAlert("❌ Error", "Please enter or select a mill value!");
@@ -108,6 +104,7 @@ export default function Updates({ filter, darkMode }) {
 
         updated[editIndex] = {
           ...row,
+          mill: millValue,
           editHistory: row.editHistory
             ? [...row.editHistory, { prevMill: row.mill, newMill: millValue, date: new Date().toLocaleDateString("en-GB") }]
             : [{ prevMill: row.mill, newMill: millValue, date: new Date().toLocaleDateString("en-GB") }],
@@ -144,7 +141,7 @@ export default function Updates({ filter, darkMode }) {
     setSelectedAmount(null);
     setCustomInput("");
   };
-  // handel edit
+
   const handleEdit = (index) => {
     const row = extraRows[index];
     const todayEntry = getTodayEntry(row.name);
@@ -174,62 +171,6 @@ export default function Updates({ filter, darkMode }) {
   const closeMonthlyView = () => setViewStudent(null);
   const closeHistoryView = () => setViewHistory(null);
 
-// Delete last student
-const deleteLast = () => {
-  if (!extraRows.length) {
-    return showAlert("❌ Error", "No student data found to delete!");
-  }
-
-  const updatedRows = extraRows.slice(0, -1);
-
-  // monthlyMillData থেকে last student remove করা
-  const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
-  const lastStudent = extraRows[extraRows.length - 1];
-  if (lastStudent && lastStudent.name) {
-    delete monthlyData[lastStudent.name];
-    localStorage.setItem("monthlyMillData", JSON.stringify(monthlyData));
-  }
-
-  // state reset
-  setExtraRows(updatedRows);
-  setEditIndex(null);
-  setSelectedName("");
-  setSelectedAmount(null);
-  setCustomInput("");
-
-  localStorage.setItem("millData", JSON.stringify(updatedRows));
-  localStorage.setItem(
-    "studentsData",
-    JSON.stringify(updatedRows.map((row) => ({ name: row.name })))
-  );
-
-  showAlert("✅ Deleted", "Last student deleted successfully!");
-};
-
-
-// Restart all students
-const restartAll = () => {
-  if (!extraRows.length) return showAlert("❌ Error", "No student data to restart!");
-
-  showConfirm(
-    "⚠️ Restart All",
-    "Are you absolutely sure? This action cannot be undone.",
-    () => {
-      setExtraRows([]);
-      setStudents([]);
-      setEditIndex(null);
-      setSelectedName("");
-      setSelectedAmount(null);
-      setCustomInput("");
-
-      localStorage.removeItem("studentsData");
-      localStorage.removeItem("millData");
-      localStorage.removeItem("monthlyMillData");
-
-      showAlert("✅ Cleared", "All students deleted successfully!");
-    }
-  );
-};
 
   const filteredRows = extraRows.filter((row) =>
     row.name.toLowerCase().includes(filter.toLowerCase())
@@ -237,31 +178,29 @@ const restartAll = () => {
 
   const totalMeals = filteredRows.reduce((sum, row) => sum + (Number(row.mill) || 0), 0);
 
-  
-
   // ================= JSX =================
   return (
-    <div ref={formRef} className={`min-h-screen p-5 font-[Times_New_Roman] transition-colors duration-500 ${bgClass}`}>
-      <div className="max-w-6xl mx-auto space-y-8">
-        <h2 className="text-2xl lg:text-3xl font-bold text-center">Every Day Meal Updates</h2>
+    <div ref={formRef} className={`containers ${bgClass}`}>
+      <div className="mainContent">
+        <h2 className="headerText">Every Day Meal Updates</h2>
 
         {/* Form Section */}
-        <div className={`backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-lg space-y-6 transition-colors duration-500 ${cardBg}`}>
-          <h3 className={`text-2xl font-semibold flex items-center gap-2 ${darkMode ? "text-white" : "text-gray-800"}`}>
+        <div className={`addForm ${cardBg}`}>
+          <h3 className={`headerForm ${darkMode ? "textWhite" : "textBlack"}`}>
             ⚙️ {editIndex !== null ? "Edit Mill Entry" : "Add Mill Entry"}
           </h3>
 
           <form
             onSubmit={(e) => { e.preventDefault(); handleAdd(); }}
-            className="flex flex-col gap-6 w-full max-w-3xl mx-auto"
+            className="form"
           >
             {/* Student select */}
-            <div className="flex flex-col gap-2">
+            <div className="inputDiv">
               <label className="font-medium">Select Student:</label>
               <select
                 value={selectedName}
                 onChange={(e) => setSelectedName(e.target.value)}
-                className={`w-full md:w-2/3 lg:w-1/2 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent transition-all duration-300 ${inputBorder}`}
+                className={`input ${inputBorder}`}
               >
                 <option value="">Select Name</option>
                 {students.map((s, i) => (
@@ -271,11 +210,11 @@ const restartAll = () => {
             </div>
 
             {/* Mill selection */}
-            <div className="flex flex-col gap-3">
+            <div className="checkDiv">
               <label className="font-medium">Select Mill:</label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4">
+              <div className="selectDiv">
                 {[1,2,3,4,5,6].map((val) => (
-                  <label key={val} className={`flex items-center justify-center gap-2 border rounded-lg px-3 py-2 cursor-pointer font-medium transition-all duration-300 shadow-sm hover:shadow-md ${selectedAmount === val ? "bg-teal-600 text-white border-teal-600 scale-[1.03]" : darkMode ? "border-gray-600 text-white hover:bg-gray-700" : "border-gray-300 text-gray-800 hover:bg-gray-100"}`}>
+                  <label key={val} className={`lable ${selectedAmount === val ? "selectValue" : darkMode ? "darkVlaue" : "lightValue"}`}>
                     <input type="checkbox" checked={selectedAmount === val} onChange={() => handleCheckbox(val)} className="accent-teal-500"/>
                     {val}
                   </label>
@@ -284,15 +223,15 @@ const restartAll = () => {
             </div>
 
             {/* Custom Input + Submit */}
-            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-              <div className="flex flex-col gap-2 flex-1">
+            <div className="customInputDiv">
+              <div className="customDiv">
                 <label className="font-medium">Custom Input:</label>
                 <input
                   type="number"
                   value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
                   placeholder="Enter Mill"
-                  className={`px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
+                  className={`customInput ${inputBorder}`}
                 />
               </div>
 
@@ -303,14 +242,15 @@ const restartAll = () => {
           </form>
         </div>
 
+
         {/* Table Section */}
-        <div className={`backdrop-blur-sm p-5 rounded-md transition-colors duration-500 ${cardBg}`}>
+        <div className={`tableMainDiv ${cardBg}`}>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">📊 Every Day Meal Data</h2>
-            <p className={`text-xl font-medium ${darkMode ? "text-white" : "text-white"}`}>Total Meal: {totalMeals}</p>
+            <h2 className="tableTitle">📊 Selected Students</h2>
+            <p className={`text-xl font-medium ${darkMode ? "text-white" : "text-black"}`}>Total Meal: {totalMeals}</p>
           </div>
 
-          <table className={`w-full border-collapse text-center border transition-colors duration-500 ${darkMode ? "border-gray-600 text-white" : "border-gray-300 text-black"}`}>
+          <table className={`table ${darkMode ? "tableDark" : "tableLight"}`}>
             <thead className={darkMode ? "bg-gray-700/30" : "bg-white/20"}>
               <tr>
                 <th className="border py-2">ID</th>
@@ -320,36 +260,25 @@ const restartAll = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredRows.map((row, i) => (
-                <tr key={i} className={`transition-all duration-300 cursor-pointer ${darkMode ? "hover:bg-gradient-to-r hover:from-teal-500/30 hover:to-purple-500/30" : "hover:bg-gradient-to-r hover:from-teal-400/20 hover:to-pink-400/20"}`}>
-                  <td className="border py-2">{i+1}</td>
-                  <td className="border py-2">{row.name}</td>
-                  <td className="border py-2">
-                    {row.mill}{" "}
-                    {row.editHistory?.length > 0 && (
-                      <span
-                        className="text-xs text-yellow-300 cursor-pointer hover:underline"
-                        onClick={() => handleViewHistory(row)}
-                        title="Click to view edit history"
-                      >
-                        #{row.editHistory.length}✎
-                      </span>
-                    )}
-                  </td>
-                  <td className="border py-2 space-x-2">
-                    <button onClick={() => handleEdit(i)} className="editBtn">Edit</button>
-                    <button onClick={() => handleViewMonthly(row.name)} className="editBtn">View Monthly</button>
-                  </td>
+              {students.map((s, i) => {
+                const row = extraRows.find(r => r.name === s.name);
+                return (
+                  <tr key={i} className={`tableRow ${darkMode ? "tableRowDark" : "tableRowLight"}`}>
+                    <td className="border py-2">{i+1}</td>
+                    <td className="border py-2">{s.name}</td>
+                    <td className="border py-2">{row ? row.mill : 0}</td>
+                    <td className="border py-2">{/* blank */}</td>
+                  </tr>
+                );
+              })}
+              {students.length === 0 && (
+                <tr>
+                  <td colSpan="4" className="py-3 text-gray-400 text-sm">No data found</td>
                 </tr>
-              ))}
-              {filteredRows.length === 0 && <tr><td colSpan="4" className="py-3 text-gray-400 text-sm">No data found</td></tr>}
+              )}
             </tbody>
           </table>
-              {/* btn */}
-          <div className="flex flex-col md:flex-row justify-center gap-4 mt-6">
-            <Button type="delete" onClick={deleteLast} />
-            <Button type="restart" onClick={restartAll} />
-          </div>
+          
         </div>
 
         {/* Monthly View Modal */}
@@ -409,6 +338,7 @@ const restartAll = () => {
     </div>
   );
 }
+
 
 
 

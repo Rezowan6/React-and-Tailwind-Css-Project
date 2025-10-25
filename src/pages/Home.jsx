@@ -117,40 +117,62 @@ export default function Home({ filter, darkMode }) {
     clearForm();
   };
 
-  // ✅ Delete last student
-  const deleteLast = () => {
-    if (!students.length) return showAlert("❌ Error", "No student data found to delete!");
+// ✅ Delete last student
+const deleteLast = () => {
+  if (!students.length)
+    return showAlert("❌ Error", "No student data found to delete!");
 
-    showConfirm("🗑 Delete Last", "Are you sure you want to delete the last student?", () => {
-      setStudents(students.slice(0, -1));
-      showAlert("✅ Deleted", "Last student deleted successfully!");
-    });
-  };
+  showConfirm("🗑 Delete Last", "Are you sure you want to delete the last student?", () => {
+    const updated = students.slice(0, -1);
+    const lastStudent = students[students.length - 1];
 
-  // ✅ Restart all students
-  const restartAll = () => {
-    if (!students.length) return showAlert("❌ Error", "No student data to restart!");
+    // 🔹 Delete that student's mill data too
+    const monthlyData = JSON.parse(localStorage.getItem("monthlyMillData")) || {};
+    if (lastStudent && lastStudent.name) delete monthlyData[lastStudent.name];
 
-    showConfirm(
-      "⚠️ Restart All",
-      "Are you absolutely sure? This action cannot be undone.",
-      () => {
-        let confirmed = false;
+    localStorage.setItem("monthlyMillData", JSON.stringify(monthlyData));
 
-        showConfirm("🧹 Final Confirmation", "Really delete all student data?", () => {
-          confirmed = true;
-          setStudents([]);
-          localStorage.removeItem("studentsData");
-          showAlert("✅ Cleared", "All students deleted successfully!");
-        });
-
-        // Auto-close final confirm after 3s if user doesn’t click
-        setTimeout(() => {
-          if (!confirmed) closeAlert();
-        }, 6000);
-      }
+    // 🔹 Update students and mill data
+    localStorage.setItem("studentsData", JSON.stringify(updated));
+    localStorage.setItem(
+      "millData",
+      JSON.stringify(updated.map(s => ({ name: s.name })))
     );
-  };
+
+    setStudents(updated);
+    showAlert("✅ Deleted", "Last student deleted successfully!");
+  });
+};
+
+// ✅ Restart all students (Delete everything)
+const restartAll = () => {
+  if (!students.length)
+    return showAlert("❌ Error", "No student data to restart!");
+
+  showConfirm(
+    "⚠️ Restart All",
+    "Are you absolutely sure? This action cannot be undone.",
+    () => {
+      let confirmed = false;
+
+      showConfirm("🧹 Final Confirmation", "Really delete all student data?", () => {
+        confirmed = true;
+        setStudents([]);
+        localStorage.removeItem("studentsData");
+        localStorage.removeItem("millData");
+        localStorage.removeItem("monthlyMillData"); // 🔹 also clear Updates.jsx data
+
+        showAlert("✅ Cleared", "All students deleted successfully!");
+      });
+
+      // Auto-close final confirm after 3s if user doesn’t click
+      setTimeout(() => {
+        if (!confirmed) closeAlert();
+      }, 6000);
+    }
+  );
+};
+
 
   // Filtered list
   const filtered = students.filter((s) =>
@@ -184,26 +206,26 @@ export default function Home({ filter, darkMode }) {
 
 
   return (
-    <div ref={formRef} className={`min-h-screen p-5 font-[Times_New_Roman] transition-colors duration-500 ${bgClass}`}>
-      <div className="max-w-6xl mx-auto space-y-8">
-        <h2 className="text-2xl lg:text-3xl font-bold text-center">{`Students Mill Management`}</h2>
+    <div ref={formRef} className={`containers ${bgClass}`}>
+      <div className="mainContent">
+        <h2 className="headerText">{`Students Mill Management`}</h2>
 
         {/* Add Student Form */}
-        <div className={`backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-lg space-y-6 transition-colors duration-500 ${cardBg}`}>
+        <div className={` addForm ${cardBg}`}>
           <h3
-            className={`text-2xl font-semibold flex items-center gap-2 ${
-              darkMode ? "text-white" : "text-gray-800"
+            className={`headerForm ${
+              darkMode ? "textWhite" : "textBlack"
             }`}
           >
-            📅 Add First Data
+            📅 {editIndex !== null ? "Edit Money Entry" : "Add Money Entry"}
           </h3>
 
           <form
             onSubmit={handleSubmit}
-            className="flex flex-col gap-6 w-full max-w-3xl mx-auto"
+            className="form"
           >
             {/* Name Input */}
-            <div className="flex flex-col gap-2">
+            <div className="inputDiv">
               <label className="font-medium">Name:</label>
               <input
                 type="text"
@@ -212,23 +234,23 @@ export default function Home({ filter, darkMode }) {
                 onChange={(e) =>
                   setName(e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1))
                 }
-                className={`w-full md:w-2/3 lg:w-1/2 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
+                className={`input ${inputBorder}`}
               />
             </div>
 
             {/* check box Money Options */}
-            <div className="flex flex-col gap-3">
+            <div className="checkDiv">
               <label className="font-medium">Select Money:</label>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 sm:gap-4">
+              <div className="selectDiv">
                 {[500, 1000, 1500, 2000, 2500, 3000].map((val) => (
                   <label
                     key={val}
-                    className={`flex items-center justify-center gap-2 border rounded-lg px-3 py-2 cursor-pointer font-medium transition-all duration-300 shadow-sm hover:shadow-md ${
+                    className={`lable ${
                       selectedAmount === val
-                        ? "bg-teal-600 text-white border-teal-600 scale-[1.03]"
+                        ? "selectValue"
                         : darkMode
-                        ? "border-gray-600 text-white hover:bg-gray-700"
-                        : "border-gray-300 text-black hover:bg-gray-100"
+                        ? "darkVlaue"
+                        : "lightValue"
                     }`}
                   >
                     <input
@@ -244,15 +266,15 @@ export default function Home({ filter, darkMode }) {
             </div>
 
             {/* Custom Input + Button */}
-            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
-              <div className="flex flex-col gap-2 flex-1">
+            <div className="customInputDiv">
+              <div className="customDiv">
                 <label className="font-medium">Custom Input:</label>
                 <input
                   type="number"
                   value={studentTk}
                   onChange={(e) => setStudentTk(e.target.value)}
                   placeholder="Enter Total Tk"
-                  className={`px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400 bg-transparent ${inputBorder}`}
+                  className={`customInput ${inputBorder}`}
                 />
               </div>
               {/* add/update student button */}
@@ -268,16 +290,16 @@ export default function Home({ filter, darkMode }) {
 
 
         {/* Cards */}
-        <div className="flex flex-col md:flex-row gap-6 justify-center items-center cursor-pointer">
+        <div className="cardDiv">
           <ReusableCard title="Total Money" amount={totalMoney} color="red" darkMode={darkMode} />
           <ReusableCard title="Remaining Money" amount={remainingMoney} color="green" darkMode={darkMode} />
         </div>
 
         {/* Students Table */}
-        <div className={`backdrop-blur-sm p-5 rounded-md transition-colors duration-500 ${cardBg}`}>
-          <h2 className="text-xl font-semibold mb-4">📊 Students Data</h2>
-          <table className={`w-full border-collapse text-center border transition-colors duration-500 ${
-            darkMode ? "border-gray-600 text-white" : "border-gray-300 text-black"
+        <div className={`tableMainDiv ${cardBg}`}>
+          <h2 className="tableTitle">📊 Students Data</h2>
+          <table className={`table ${
+            darkMode ? "tableDark" : "tableLight"
           }`}>
             <thead>
               <tr className={darkMode ? "bg-gray-700/30" : "bg-white/20"}>
@@ -292,10 +314,10 @@ export default function Home({ filter, darkMode }) {
               {filtered.map((student, i) => (
                 <tr
                   key={i}
-                  className={`transition-all duration-300 cursor-pointer ${
+                  className={`tableRow ${
                     darkMode
-                      ? "hover:bg-gradient-to-r hover:from-teal-500/30 hover:to-purple-500/30"
-                      : "hover:bg-gradient-to-r hover:from-teal-400/20 hover:to-pink-400/20"
+                      ? "tableRowDark"
+                      : "tableRowLight"
                   }`}
                 >
                   <td className="border py-2">{i + 1}</td>
