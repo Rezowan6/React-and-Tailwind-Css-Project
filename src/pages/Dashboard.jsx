@@ -95,12 +95,12 @@ const generatePDF = () => {
     alternateRowStyles: { fillColor: [240, 248, 255] },
     columnStyles: {
       0: { cellWidth: 10, halign: "center" },
-      1: { cellWidth: 50, halign: "left" },
-      2: { cellWidth: 30, halign: "right" },
-      3: { cellWidth: 25, halign: "right" },
-      4: { cellWidth: 30, halign: "right" },
-      5: { cellWidth: 30, halign: "right" },
-      6: { cellWidth: 30, halign: "right" },
+      1: { cellWidth: 50, halign: "center" },
+      2: { cellWidth: 30, halign: "center" },
+      3: { cellWidth: 25, halign: "center" },
+      4: { cellWidth: 30, halign: "center" },
+      5: { cellWidth: 30, halign: "center" },
+      6: { cellWidth: 30, halign: "center" },
     },
   });
 
@@ -160,13 +160,13 @@ const generatePDF = () => {
                   >
                     <td className="border px-2 sm:px-4 py-2">{student.id}</td>
                     <td className="border px-2 sm:px-4 py-2">{student.name}</td>
-                    <td className="border px-2 sm:px-4 py-2 text-right">৳{student.totalMoney}</td>
-                    <td className="border px-2 sm:px-4 py-2 text-right">{student.totalMill}</td>
-                    <td className="border px-2 sm:px-4 py-2 text-right">৳{studentExpense}</td>
-                    <td className={`border px-2 sm:px-4 py-2 text-right ${positive ? "text-green-600 dark:text-green-400 font-medium" : ""}`}>
+                    <td className="border px-2 sm:px-4 py-2 text-center">৳{student.totalMoney}</td>
+                    <td className="border px-2 sm:px-4 py-2 text-center">{student.totalMill}</td>
+                    <td className="border px-2 sm:px-4 py-2 text-center">৳{studentExpense}</td>
+                    <td className={`border px-2 sm:px-4 py-2 text-center ${positive ? "text-green-600 dark:text-green-400 font-medium" : ""}`}>
                       {positive ? `৳${positive}` : "-"}
                     </td>
-                    <td className={`border px-2 sm:px-4 py-2 text-right ${negative ? "text-red-600 dark:text-red-400 font-medium" : ""}`}>
+                    <td className={`border px-2 sm:px-4 py-2 text-center ${negative ? "text-red-600 dark:text-red-400 font-medium" : ""}`}>
                       {negative ? `৳${negative}` : "-"}
                     </td>
                   </tr>
